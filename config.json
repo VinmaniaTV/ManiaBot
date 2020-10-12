@@ -1,3 +1,9 @@
 {
-    "BOT_TOKEN": "bot_token"
+    "PREFIX": "!",
+    "BOT_TOKEN": "bot_token",
+    "MYSQLHOST": "host",
+    "MYSQLPORT": 3306,
+    "MYSQLUSER": "user",
+    "MYSQLPASSWORD": "password",
+    "MYSQLDATABASE": "database"
 }
