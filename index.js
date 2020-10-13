@@ -77,7 +77,7 @@ client.on("message", function(message) {
   }
 
   else if (command == "newdevoir") {
-    const args = message.content.slice(prefix.length).trim().split(' ');
+    const args = message.content.slice(config.PREFIX.length).trim().split(' ');
 
     if (args.length == 1) {
       return message.reply(`Tu n'as pas donné d'arguments !`);
@@ -155,6 +155,10 @@ client.on("message", function(message) {
       .setFooter('Créé par les soins de Vinmania :)', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png');
       message.reply(embed);
     });
+  }
+
+  else {
+    message.reply("**\\*bip\\*** Je suis désolé. **\\*bip\\*** La commande n'existe pas (ou pas encore). **\\*bip\\***");
   }
 });
 

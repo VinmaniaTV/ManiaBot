@@ -1,7 +1,7 @@
 {
     "PREFIX": "!",
     "BOT_TOKEN": "bot_token",
-    "MYSQLHOST": "host",
+    "MYSQLHOST": "localhost",
     "MYSQLPORT": 3306,
     "MYSQLUSER": "user",
     "MYSQLPASSWORD": "password",
