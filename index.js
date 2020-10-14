@@ -1,9 +1,12 @@
 const Discord = require("discord.js");
 const config = require("./config.json");
+const ytdl = require("ytdl-core");
 
 const { Client, MessageEmbed } = require('discord.js');
 
 const client = new Discord.Client();
+
+const queue = new Map();
 
 var mysql = require('mysql');
 
@@ -29,9 +32,23 @@ client.on("ready", () => {
   client.user.setActivity('!help', { type: 'PLAYING' });
 });
 
+client.once("ready", () => {
+  console.log("Ready!");
+});
+
+client.once("reconnecting", () => {
+  console.log("Reconnecting!");
+});
+
+client.once("disconnect", () => {
+  console.log("Disconnect!");
+});
+
 client.on("message", function(message) {
   if (message.author.bot) return;
   if (!message.content.startsWith(config.PREFIX)) return;
+
+  const serverQueue = queue.get(message.guild.id);
 
   const commandBody = message.content.slice(config.PREFIX.length);
   const args = commandBody.split(' ');
@@ -67,7 +84,10 @@ client.on("message", function(message) {
         { name: '!ping', value: 'Affiche le ping du bot.', inline: false },
         //{ name: 'Inline field title', value: 'Some value here', inline: true },
         { name: '!devoir', value: 'Affiche la liste des devoirs qui sont à venir.', inline: false },
-        { name: '!newDevoir [nom du devoir] [matière] [date rendu]', value: 'enregistre un nouveau devoir à venir.', inline: false },
+        { name: '!newDevoir [nom du devoir] [matière] [date rendu]', value: 'Enregistre un nouveau devoir à venir.', inline: false },
+        { name: '!play [lien YouTube]', value: 'Ajoute une musique à la liste d\'attente.', inline: false },
+        { name: '!skip', value: 'Passe la musique actuellement jouée par ManiaBot.', inline: false },
+        { name: '!stop', value: 'Arrête la musique.', inline: false },
       )
       //.addField('Inline field title', 'Some value here', true)
       .setImage('https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
@@ -107,14 +127,9 @@ client.on("message", function(message) {
       .setThumbnail('https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
       .addFields(
         { name: 'Nom du devoir :', value: args[1] },
-        //{ name: '\u200B', value: '\u200B' },
-        //{ name: '!ping', value: 'Affiche le ping du bot.', inline: true },
-        //{ name: 'Inline field title', value: 'Some value here', inline: true },
       )
       .addField('Matière :', args[2], true)
       .addField('Date de rendu :', args[3], true)
-      //.addField('Inline field title', 'Some value here', true)
-      //.setImage('https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
       .setTimestamp()
       .setFooter('Créé par les soins de Vinmania :)', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png');
       message.reply(embed);
@@ -138,28 +153,141 @@ client.on("message", function(message) {
       .setAuthor('ManiaBot', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
       // Set the main content of the embed
       .setDescription('La liste des devoirs à venir :')
-      //.setThumbnail('https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
       results.forEach(element => {
         embed.addFields(
           { name: '__', value: "**" + element.name + "**" },
-          //{ name: '\u200B', value: '\u200B' },
-          //{ name: '!ping', value: 'Affiche le ping du bot.', inline: true },
-          //{ name: 'Inline field title', value: 'Some value here', inline: true },
         )
         .addField('> Matière :', element.subject, true)
         .addField('> Date de rendu :', element.formatedDate, true)
       });
-      //.addField('Inline field title', 'Some value here', true)
-      //embed.setImage('https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
       embed.setTimestamp()
       .setFooter('Créé par les soins de Vinmania :)', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png');
       message.reply(embed);
     });
   }
 
+  // Music Bot commands.
+
+  else if (command === `play`) {
+    execute(message, serverQueue);
+    return;
+  }
+  
+  else if (command === `skip`) {
+    skip(message, serverQueue);
+    return;
+  }
+  
+  else if (command === `stop`) {
+    stop(message, serverQueue);
+    return;
+  }
+
   else {
     message.reply("**\\*bip\\*** Je suis désolé. **\\*bip\\*** La commande n'existe pas (ou pas encore). **\\*bip\\***");
   }
 });
+
+// Music Bot methods.
+
+async function execute(message, serverQueue) {
+  const args = message.content.split(" ");
+
+  const voiceChannel = message.member.voice.channel;
+  if (!voiceChannel)
+    return message.channel.send(
+      "Connecte-toi dans un salon vocal !"
+    );
+  const permissions = voiceChannel.permissionsFor(message.client.user);
+  if (!permissions.has("CONNECT") || !permissions.has("SPEAK")) {
+    return message.channel.send(
+      "Je n'ai pas la permission de rejoindre ton salon ou d'y parler ! :("
+    );
+  }
+
+  if (args.length < 2) {
+    return message.channel.send(
+      "Il me faut le lien de ta musique pour que je puisse la jouer ! ♫"
+    );
+  }
+
+  if (args.length > 2) {
+    return message.channel.send(
+      "Doucement ! Donne moi une seule musique à la fois !"
+    );
+  }
+
+  const songInfo = await ytdl.getInfo(args[1]);
+  const song = {
+    title: songInfo.title,
+    url: songInfo.video_url
+  };
+
+  if (!serverQueue) {
+    const queueContruct = {
+      textChannel: message.channel,
+      voiceChannel: voiceChannel,
+      connection: null,
+      songs: [],
+      volume: 5,
+      playing: true
+    };
+
+    queue.set(message.guild.id, queueContruct);
+
+    queueContruct.songs.push(song);
+
+    try {
+      var connection = await voiceChannel.join();
+      queueContruct.connection = connection;
+      play(message.guild, queueContruct.songs[0]);
+    } catch (err) {
+      console.log(err);
+      queue.delete(message.guild.id);
+      return message.channel.send(err);
+    }
+  } else {
+    serverQueue.songs.push(song);
+    return message.channel.send(`${song.title} a été ajouté à la liste d'attente !`);
+  }
+}
+
+function skip(message, serverQueue) {
+  if (!message.member.voice.channel)
+    return message.channel.send(
+      "Tu dois être dans un salon vocal pour passer la musique !"
+    );
+  if (!serverQueue)
+    return message.channel.send("Il n'y a aucun son à passer !");
+  serverQueue.connection.dispatcher.end();
+}
+
+function stop(message, serverQueue) {
+  if (!message.member.voice.channel)
+    return message.channel.send(
+      "Tu dois être dans un salon vocal pour arrêter la musique !"
+    );
+  serverQueue.songs = [];
+  serverQueue.connection.dispatcher.end();
+}
+
+function play(guild, song) {
+  const serverQueue = queue.get(guild.id);
+  if (!song) {
+    serverQueue.voiceChannel.leave();
+    queue.delete(guild.id);
+    return;
+  }
+
+  const dispatcher = serverQueue.connection
+  .play(ytdl(song.url))
+  .on("finish", () => {
+    serverQueue.songs.shift();
+    play(guild, serverQueue.songs[0]);
+  })
+  .on("error", error => console.error(error));
+dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
+serverQueue.textChannel.send(`Lecture de : **${song.title}**`);
+}
 
 client.login(config.BOT_TOKEN);
