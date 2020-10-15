@@ -18,7 +18,7 @@ var con = mysql.createConnection({
   database: config.MYSQLDATABASE
 });
 
-con.connect(function(err) {
+con.connect({timeout: Infinity}, function(err) {
   if (err) throw err;
   console.log("MySQL connected!")
 });
@@ -183,6 +183,37 @@ client.on("message", function(message) {
     return;
   }
 
+  // Calendar Commands.
+
+  else if (command === "edt") {
+    var calendar = getJSONfromURL("https://www.googleapis.com/calendar/v3/calendars/ceik8cafipe46c8nrfbp4gv20fbb2s75@import.calendar.google.com/events?key=AIzaSyDg7it-3N30SIVKmDPF_7FrLJs7t7WYJUc");
+    
+    // We can create embeds using the MessageEmbed constructor
+    // Read more about all that you can do with the constructor
+    // over at https://discord.js.org/#/docs/main/master/class/MessageEmbed
+    const embed = new MessageEmbed()
+      // Set the title of the field
+      .setTitle('Emploi du temps')
+      // Set the color of the embed
+      .setColor(0x0000FF)
+      .setAuthor('ManiaBot', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
+      // Set the main content of the embed
+      .setDescription('Liste des commandes actives :')
+      .setThumbnail('https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
+      calendar.items.forEach(element => {
+        if (new Date(element.start.dateTime).getWeek() == Date.now().getWeek()) {
+          embed.addFields(
+            { name: '__', value: "**" + element.summary + "**" },
+          )
+          .addField(element.description, element.location, true)
+          .addField(element.start.dateTime + ' - ' + element.end.dateTime, "__")
+        }
+      });
+      embed.setTimestamp()
+      .setFooter('Créé par les soins de Vinmania :)', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png');
+      message.author.send(embed);
+  }
+
   else {
     message.reply("**\\*bip\\*** Je suis désolé. **\\*bip\\*** La commande n'existe pas (ou pas encore). **\\*bip\\***");
   }
@@ -289,5 +320,58 @@ function play(guild, song) {
 dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
 serverQueue.textChannel.send(`Lecture de : **${song.title}**`);
 }
+
+// Calendar methods.
+
+function getJSONfromURL(url) {
+  const http = require('http');
+
+  let req = http.get("http://site.com/data.json", function(res) {
+    let data = '',
+      json_data;
+
+    res.on('data', function(stream) {
+      data += stream;
+    });
+    res.on('end', function() {
+      json_data = JSON.parse(data);
+
+      // will output a Javascript object
+      return json_data;
+    });
+  });
+
+  req.on('error', function(e) {
+      console.log(e.message);
+  });
+}
+
+Date.prototype.getWeek = function (dowOffset) {
+  /*getWeek() was developed by Nick Baicoianu at MeanFreePath: http://www.meanfreepath.com */
+  
+      dowOffset = typeof(dowOffset) == 'int' ? dowOffset : 0; //default dowOffset to zero
+      var newYear = new Date(this.getFullYear(),0,1);
+      var day = newYear.getDay() - dowOffset; //the day of week the year begins on
+      day = (day >= 0 ? day : day + 7);
+      var daynum = Math.floor((this.getTime() - newYear.getTime() - 
+      (this.getTimezoneOffset()-newYear.getTimezoneOffset())*60000)/86400000) + 1;
+      var weeknum;
+      //if the year starts before the middle of a week
+      if(day < 4) {
+          weeknum = Math.floor((daynum+day-1)/7) + 1;
+          if(weeknum > 52) {
+              nYear = new Date(this.getFullYear() + 1,0,1);
+              nday = nYear.getDay() - dowOffset;
+              nday = nday >= 0 ? nday : nday + 7;
+              /*if the next year starts before the middle of
+                the week, it is week #1 of that year*/
+              weeknum = nday < 4 ? 1 : 53;
+          }
+      }
+      else {
+          weeknum = Math.floor((daynum+day-1)/7);
+      }
+      return weeknum;
+  };
 
 client.login(config.BOT_TOKEN);
