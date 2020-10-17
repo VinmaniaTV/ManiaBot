@@ -1,6 +1,7 @@
 const Discord = require("discord.js");
 const config = require("./config.json");
 const ytdl = require("ytdl-core");
+const https = require('https');
 
 const { Client, MessageEmbed } = require('discord.js');
 
@@ -83,6 +84,7 @@ client.on("message", function(message) {
         //{ name: '\u200B', value: '\u200B' },
         { name: '!ping', value: 'Affiche le ping du bot.', inline: false },
         //{ name: 'Inline field title', value: 'Some value here', inline: true },
+        { name: '!edt', value: 'Affiche l\'emploi du temps de la semaine. **[BETA]**', inline: false },
         { name: '!devoir', value: 'Affiche la liste des devoirs qui sont à venir.', inline: false },
         { name: '!newDevoir [nom du devoir] [matière] [date rendu]', value: 'Enregistre un nouveau devoir à venir.', inline: false },
         { name: '!play [lien YouTube]', value: 'Ajoute une musique à la liste d\'attente.', inline: false },
@@ -186,32 +188,97 @@ client.on("message", function(message) {
   // Calendar Commands.
 
   else if (command === "edt") {
-    var calendar = getJSONfromURL("https://www.googleapis.com/calendar/v3/calendars/ceik8cafipe46c8nrfbp4gv20fbb2s75@import.calendar.google.com/events?key=AIzaSyDg7it-3N30SIVKmDPF_7FrLJs7t7WYJUc");
-    
-    // We can create embeds using the MessageEmbed constructor
-    // Read more about all that you can do with the constructor
-    // over at https://discord.js.org/#/docs/main/master/class/MessageEmbed
-    const embed = new MessageEmbed()
-      // Set the title of the field
-      .setTitle('Emploi du temps')
-      // Set the color of the embed
-      .setColor(0x0000FF)
-      .setAuthor('ManiaBot', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
-      // Set the main content of the embed
-      .setDescription('Liste des commandes actives :')
-      .setThumbnail('https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
-      calendar.items.forEach(element => {
-        if (new Date(element.start.dateTime).getWeek() == Date.now().getWeek()) {
-          embed.addFields(
-            { name: '__', value: "**" + element.summary + "**" },
-          )
-          .addField(element.description, element.location, true)
-          .addField(element.start.dateTime + ' - ' + element.end.dateTime, "__")
-        }
+    var weekday = new Array(7);
+    weekday[0] = "Monday";
+    weekday[1] = "Tuesday";
+    weekday[2] = "Wednesday";
+    weekday[3] = "Thursday";
+    weekday[4] = "Friday";
+    weekday[5] = "Saturday";
+    weekday[6] = "Sunday";
+
+    var weekdayFr = new Array(7);
+    weekdayFr[0] = "Dimanche";
+    weekdayFr[1] = "Lundi";
+    weekdayFr[2] = "Mardi";
+    weekdayFr[3] = "Mercredi";
+    weekdayFr[4] = "Jeudi";
+    weekdayFr[5] = "Vendredi";
+    weekdayFr[6] = "Samedi";
+
+    let req = https.get(config.CALENDAR, function(res) {
+      let data = '',
+        calendar,
+        calendar_week = [];
+
+      res.on('data', function(stream) {
+        data += stream;
       });
-      embed.setTimestamp()
-      .setFooter('Créé par les soins de Vinmania :)', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png');
-      message.author.send(embed);
+      res.on('end', function() {
+        calendar = JSON.parse(data);
+        // will output a Javascript object
+
+        calendar.items.forEach(element => {
+          calendar_week.push(element);
+        });
+
+        var len = calendar.length;
+        for (var i = len-1; i>=0; i--){
+          for(var j = 1; j<=i; j++){
+            if(calendar_week[j-1].start.dateTime>calendar_week[j].start.dateTime){
+              var temp = calendar_week[j-1];
+              calendar_week[j-1] = calendar_week[j];
+              calendar_week[j] = temp;
+            }
+          }
+        }
+
+        console.log(calendar_week);
+
+        // We can create embeds using the MessageEmbed constructor
+        // Read more about all that you can do with the constructor
+        // over at https://discord.js.org/#/docs/main/master/class/MessageEmbed
+        const embed = new MessageEmbed()
+        // Set the title of the field
+        .setTitle('Emploi du temps')
+        // Set the color of the embed
+        .setColor(0x0000FF)
+        .setAuthor('ManiaBot', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
+        .setThumbnail('https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
+        for (var i = 1; i < weekdayFr.length; i++) {
+          var strCal = "";
+          calendar_week.forEach(element => {
+            if (new Date(element.start.dateTime).getWeek() == new Date().getWeek()) {
+              if (weekdayFr[new Date(element.start.dateTime).getDay()] == weekdayFr[i]) {
+                strCal += new Date(element.start.dateTime).getHours() + ":" + new Date(element.start.dateTime).getMinutes() +  ' - ' + new Date(element.end.dateTime).getHours() + ":" + new Date(element.end.dateTime).getMinutes() + "\t|\t" + element.summary + "\n"
+              }
+            }
+          })
+          if (strCal == "") {
+            strCal += "Rien de prévu " + weekdayFr[i] + " !";
+          }
+          embed.addField("**" + weekdayFr[i] + "**", "```" + strCal + "```") 
+        };
+        /*
+        calendar_week.items.forEach(element => {
+          if (new Date(element.start.dateTime).getWeek() == new Date().getWeek()) {
+            embed.addFields(
+              { name: '__', value: "**" + element.summary + "**" },
+            )
+            .addField(element.description, element.location, true)
+            .addField(new Date(element.start.dateTime).getHours() + ":" + new Date(element.start.dateTime).getMinutes()+  ' - ' + new Date(element.end.dateTime).getHours() + ":" + new Date(element.end.dateTime).getMinutes(), "__")
+          }
+        });
+        */
+        embed.setTimestamp()
+        .setFooter('Créé par les soins de Vinmania :)', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png');
+        message.reply(embed);
+      });
+    });
+
+    req.on('error', function(e) {
+        console.log(e.message);
+    });
   }
 
   else {
@@ -321,30 +388,7 @@ dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
 serverQueue.textChannel.send(`Lecture de : **${song.title}**`);
 }
 
-// Calendar methods.
-
-function getJSONfromURL(url) {
-  const http = require('http');
-
-  let req = http.get("http://site.com/data.json", function(res) {
-    let data = '',
-      json_data;
-
-    res.on('data', function(stream) {
-      data += stream;
-    });
-    res.on('end', function() {
-      json_data = JSON.parse(data);
-
-      // will output a Javascript object
-      return json_data;
-    });
-  });
-
-  req.on('error', function(e) {
-      console.log(e.message);
-  });
-}
+// Calendar Methods.
 
 Date.prototype.getWeek = function (dowOffset) {
   /*getWeek() was developed by Nick Baicoianu at MeanFreePath: http://www.meanfreepath.com */
