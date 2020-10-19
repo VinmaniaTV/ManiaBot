@@ -189,22 +189,13 @@ client.on("message", function(message) {
 
   else if (command === "edt") {
     var weekday = new Array(7);
-    weekday[0] = "Monday";
-    weekday[1] = "Tuesday";
-    weekday[2] = "Wednesday";
-    weekday[3] = "Thursday";
-    weekday[4] = "Friday";
-    weekday[5] = "Saturday";
-    weekday[6] = "Sunday";
-
-    var weekdayFr = new Array(7);
-    weekdayFr[0] = "Dimanche";
-    weekdayFr[1] = "Lundi";
-    weekdayFr[2] = "Mardi";
-    weekdayFr[3] = "Mercredi";
-    weekdayFr[4] = "Jeudi";
-    weekdayFr[5] = "Vendredi";
-    weekdayFr[6] = "Samedi";
+    weekday[0] = "Dimanche";
+    weekday[1] = "Lundi";
+    weekday[2] = "Mardi";
+    weekday[3] = "Mercredi";
+    weekday[4] = "Jeudi";
+    weekday[5] = "Vendredi";
+    weekday[6] = "Samedi";
 
     let req = https.get(config.CALENDAR, function(res) {
       let data = '',
@@ -245,19 +236,19 @@ client.on("message", function(message) {
         .setColor(0x0000FF)
         .setAuthor('ManiaBot', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
         .setThumbnail('https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
-        for (var i = 1; i < weekdayFr.length; i++) {
+        for (var i = 1; i < weekday.length; i++) {
           var strCal = "";
           calendar_week.forEach(element => {
             if (new Date(element.start.dateTime).getWeek() == new Date().getWeek()) {
-              if (weekdayFr[new Date(element.start.dateTime).getDay()] == weekdayFr[i]) {
+              if (weekday[new Date(element.start.dateTime).getDay()] == weekday[i]) {
                 strCal += new Date(element.start.dateTime).getHours() + ":" + new Date(element.start.dateTime).getMinutes() +  ' - ' + new Date(element.end.dateTime).getHours() + ":" + new Date(element.end.dateTime).getMinutes() + "\t|\t" + element.summary + "\n"
               }
             }
           })
           if (strCal == "") {
-            strCal += "Rien de prévu " + weekdayFr[i] + " !";
+            strCal += "Rien de prévu " + weekday[i] + " !";
           }
-          embed.addField("**" + weekdayFr[i] + "**", "```" + strCal + "```") 
+          embed.addField("**" + weekday[i] + "**", "```" + strCal + "```") 
         };
         /*
         calendar_week.items.forEach(element => {
