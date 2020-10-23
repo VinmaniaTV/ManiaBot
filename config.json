@@ -6,5 +6,6 @@
     "MYSQLUSER": "user",
     "MYSQLPASSWORD": "password",
     "MYSQLDATABASE": "database",
-    "CALENDAR": "iCalendarURL (JSON required)"
+    "CALENDAR": "iCalendarURL (JSON required)",
+    "RIOT_API_KEY": "riot_api_key"
 }

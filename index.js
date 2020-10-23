@@ -148,12 +148,9 @@ client.on("message", function(message) {
       if (error) throw error;
       console.log(results);
       const embed = new MessageEmbed()
-      // Set the title of the field
       .setTitle(`Liste des devoirs`)
-      // Set the color of the embed
       .setColor(0x0000FF)
       .setAuthor('ManiaBot', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
-      // Set the main content of the embed
       .setDescription('La liste des devoirs à venir :')
       results.forEach(element => {
         embed.addFields(
@@ -226,13 +223,8 @@ client.on("message", function(message) {
 
         console.log(calendar_week);
 
-        // We can create embeds using the MessageEmbed constructor
-        // Read more about all that you can do with the constructor
-        // over at https://discord.js.org/#/docs/main/master/class/MessageEmbed
         const embed = new MessageEmbed()
-        // Set the title of the field
         .setTitle('Emploi du temps')
-        // Set the color of the embed
         .setColor(0x0000FF)
         .setAuthor('ManiaBot', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
         .setThumbnail('https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
@@ -406,7 +398,41 @@ Date.prototype.getWeek = function (dowOffset) {
       else {
           weeknum = Math.floor((daynum+day-1)/7);
       }
-      return weeknum;
-  };
+    return weeknum;
+};
+
+// League methods
+
+function getRiotAPIData(request, args) {
+  var URL = 'https://euw.api.pvp.net/api'+ request + args + '?api_key=' + config.RIOT_API_KEY;
+  request(URL, function(err, response, body) {
+    if(response.statusCode == 200) {
+      var json = JSON.parse(body);
+      return json;
+    }
+    else {
+      console.log('Error: request not ended.');
+      return null;
+    }
+  })
+}
+
+function updateSummonerData(summonerName) {
+  var summonerJSON = getRiotAPIData('/lol/summoner/v4/summoners/by-name/', summonerName);
+  if (summonerJSON != null) {
+    con.query('REPLACE INTO summmoners (id, accountId, puuid, name, profileIconId, revisionDate, summonerLevel) VALUES (' + summonerJSON.id, summonerJSON.accountId, summonerJSON.puuid, summonerJSON.name, summonerJSON.profileIconId, summonerJSON.revisionDate, summonerJSON.summonerLevel +');', function (error, results, fields) {
+      if (error) throw error;
+      console.log(results.insertId);
+    });
+    var leagueJSON = getRiotAPIData('/lol/league/v4/entries/by-summoner/', summonerJSON.id);
+    con.query('REPLACE INTO league (leagueId, queueType, tier, rank, summonerId, summonerName, leaguePoints, wins, losses, veteran, inactive, freshBlood, hotStreak) VALUES (' + leagueJSON.leagueId, leagueJSON.queueType, leagueJSON.tier, leagueJSON.rank, leagueJSON.summonerId, leagueJSON.summonerName, leagueJSON.leaguePoints, leagueJSON.wins, leagueJSON.losses, leagueJSON.veteran, leagueJSON.inactive, leagueJSON.freshBlood, leagueJSON.hotStreak +');', function (error, results, fields) {
+      if (error) throw error;
+      console.log(results.insertId);
+    });
+  }
+  else {
+    console.log('Error: Summoner update not successful.');
+  }
+}
 
 client.login(config.BOT_TOKEN);
