@@ -67,7 +67,7 @@ client.on("message", function(message) {
   }
 
   else if (command === "help") {
-// We can create embeds using the MessageEmbed constructor
+    // We can create embeds using the MessageEmbed constructor
     // Read more about all that you can do with the constructor
     // over at https://discord.js.org/#/docs/main/master/class/MessageEmbed
     const embed = new MessageEmbed()
@@ -221,8 +221,6 @@ client.on("message", function(message) {
           }
         }
 
-        console.log(calendar_week);
-
         const embed = new MessageEmbed()
         .setTitle('Emploi du temps')
         .setColor(0x0000FF)
@@ -242,17 +240,6 @@ client.on("message", function(message) {
           }
           embed.addField("**" + weekday[i] + "**", "```" + strCal + "```") 
         };
-        /*
-        calendar_week.items.forEach(element => {
-          if (new Date(element.start.dateTime).getWeek() == new Date().getWeek()) {
-            embed.addFields(
-              { name: '__', value: "**" + element.summary + "**" },
-            )
-            .addField(element.description, element.location, true)
-            .addField(new Date(element.start.dateTime).getHours() + ":" + new Date(element.start.dateTime).getMinutes()+  ' - ' + new Date(element.end.dateTime).getHours() + ":" + new Date(element.end.dateTime).getMinutes(), "__")
-          }
-        });
-        */
         embed.setTimestamp()
         .setFooter('Créé par les soins de Vinmania :)', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png');
         message.reply(embed);
@@ -262,6 +249,60 @@ client.on("message", function(message) {
     req.on('error', function(e) {
         console.log(e.message);
     });
+  }
+
+  else if (command === "league") {
+    const args = message.content.slice(config.PREFIX.length).trim().split(' ');
+
+    if (args.length == 1) {
+      return message.reply(`Tu n'as pas spécifié de nom d'invocateur !`);
+    }
+
+    var summonerName = "";
+    for (var i = 1; i < args.length; i++) {
+      summonerName += args[i];
+    }
+
+    if(updateSummonerData(summonerName) == false) {
+      message.reply(`Le nom d'invocateur n'existe pas !`);
+    }
+
+    if(checkSummonerDataExists(summonerName) == true) {
+      console.log('rlkelkerlkekerlkrleerkkerllk');
+      con.query('SELECT s.name, s.summonerLevel, l.queueType, l.tier, l.rank, l.wins, l.losses FROM summoners s INNER JOIN league l ON s.id = l.summonerId WHERE s.name = "' + summonerName + '";', function (error, results, fields) {
+        if (error) throw error;
+        console.log('res : ' + results);
+        const embed = new MessageEmbed()
+          .setTitle('Stats de ' + results[0].name)
+          .setColor(0x0000FF)
+          .setAuthor('ManiaBot', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
+          .setDescription(`Niveau d'invocateur : ` + results[0].summonerLevel)
+          .setThumbnail('https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
+          results.forEach(element => {
+            switch(element.queueType) {
+              case 'RANKED_SOLO_5x5':
+                embed.addFields(
+                  { name: '__', value: "_**Solo/Duo**_" },
+                )
+                break;
+              case 'RANKED_FLEX_SR':
+                embed.addFields(
+                  { name: '__', value: "_**Flexible**_" },
+                )
+                break;
+              default:
+                embed.addFields(
+                  { name: '__', value: "_**File inconnue**_" },
+                )
+            }
+            embed.addField('Elo :', element.tier + " " + element.rank, true)
+            .addField('Victoire(s) :' + element.wins + "\tDéfaite(s) : " + element.losses, "Ratio : " + element.wins * 100 / (element.wins + element.losses), true)
+          });
+          embed.setTimestamp()
+          .setFooter('Créé par les soins de Vinmania :)', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png');
+        message.reply(embed);
+      });
+    }
   }
 
   else {
@@ -404,35 +445,178 @@ Date.prototype.getWeek = function (dowOffset) {
 // League methods
 
 function getRiotAPIData(request, args) {
-  var URL = 'https://euw.api.pvp.net/api'+ request + args + '?api_key=' + config.RIOT_API_KEY;
-  request(URL, function(err, response, body) {
-    if(response.statusCode == 200) {
-      var json = JSON.parse(body);
-      return json;
-    }
-    else {
-      console.log('Error: request not ended.');
-      return null;
-    }
-  })
+  var url = 'https://euw1.api.riotgames.com'+ request + args + '?api_key=' + config.RIOT_API_KEY;
+
+  let req = https.get(url, (res) => {
+    let data = '';
+
+    res.on('data', function(stream) {
+      data += stream;
+    });
+    res.on('end', function() {
+      /*
+      if(res.statusCode == 200) {
+        var json = JSON.parse(data);
+        return json;
+      }
+      else {
+        console.log('Error: request not ended.');
+        return null;
+        //return response.statusCode;
+      }
+      */
+     return JSON.parse(data);
+    })
+  });
+
+  req.on('error', function(e) {
+      console.log(e.message);
+  });
 }
 
 function updateSummonerData(summonerName) {
-  var summonerJSON = getRiotAPIData('/lol/summoner/v4/summoners/by-name/', summonerName);
-  if (summonerJSON != null) {
-    con.query('REPLACE INTO summmoners (id, accountId, puuid, name, profileIconId, revisionDate, summonerLevel) VALUES (' + summonerJSON.id, summonerJSON.accountId, summonerJSON.puuid, summonerJSON.name, summonerJSON.profileIconId, summonerJSON.revisionDate, summonerJSON.summonerLevel +');', function (error, results, fields) {
-      if (error) throw error;
-      console.log(results.insertId);
+  var url = 'https://euw1.api.riotgames.com/lol/summoner/v4/summoners/by-name/'+ summonerName + '?api_key=' + config.RIOT_API_KEY;
+
+  let req = https.get(url, (res) => {
+    let data = '';
+
+    res.on('data', function(stream) {
+      data += stream;
     });
-    var leagueJSON = getRiotAPIData('/lol/league/v4/entries/by-summoner/', summonerJSON.id);
-    con.query('REPLACE INTO league (leagueId, queueType, tier, rank, summonerId, summonerName, leaguePoints, wins, losses, veteran, inactive, freshBlood, hotStreak) VALUES (' + leagueJSON.leagueId, leagueJSON.queueType, leagueJSON.tier, leagueJSON.rank, leagueJSON.summonerId, leagueJSON.summonerName, leagueJSON.leaguePoints, leagueJSON.wins, leagueJSON.losses, leagueJSON.veteran, leagueJSON.inactive, leagueJSON.freshBlood, leagueJSON.hotStreak +');', function (error, results, fields) {
+    res.on('end', function() {
+      var summonerJSON = JSON.parse(data);
+      //console.log(summonerJSON);
+      if (!summonerJSON.status) {
+        con.query('REPLACE INTO summoners (id, accountId, puuid, name, profileIconId, revisionDate, summonerLevel) VALUES ("' + summonerJSON.id + '", "' + summonerJSON.accountId + '", "' + summonerJSON.puuid + '", "' + summonerJSON.name + '", ' + summonerJSON.profileIconId + ', ' + summonerJSON.revisionDate + ', ' + summonerJSON.summonerLevel + ');', function (error, results, fields) {
+          if (error) throw error;
+          console.log(results.insertId);
+        });
+        updateLeagueData(summonerJSON.id);
+      }
+      else {
+        console.log('Error: Summoner update not successful.');
+      }
+    })
+  });
+
+  req.on('error', function(e) {
+      console.log(e.message);
+  });
+}
+
+function updateLeagueData(summonerId) {
+  var url = 'https://euw1.api.riotgames.com/lol/league/v4/entries/by-summoner/'+ summonerId + '?api_key=' + config.RIOT_API_KEY;
+
+  let req = https.get(url, (res) => {
+    let data = '';
+
+    res.on('data', function(stream) {
+      data += stream;
+    });
+    res.on('end', function() {
+      var leagueJSON = JSON.parse(data);
+      //console.log(leagueJSON);
+      if (leagueJSON != null) {
+        leagueJSON.forEach(element => {
+          con.query('REPLACE INTO league (leagueId, queueType, tier, rank, summonerId, summonerName, leaguePoints, wins, losses, veteran, inactive, freshBlood, hotStreak) VALUES ("' + element.leagueId + '", "' + element.queueType + '", "' + element.tier + '", "' + element.rank + '", "' + element.summonerId + '", "' + element.summonerName + '", ' + element.leaguePoints + ', ' + element.wins + ', ' + element.losses + ', ' + element.veteran + ', ' + element.inactive + ', ' + element.freshBlood + ', ' + element.hotStreak +');', function (error, results, fields) {
+            if (error) throw error;
+            console.log(results.insertId);
+          });
+        });
+        return Boolean(true);
+      }
+      else {
+        console.log('Error: League update not successful.');
+        return Boolean(false);
+      }
+    })
+  });
+}
+
+function checkSummonerDataExists(summonerName) {
+  con.query('SELECT name FROM summoners WHERE name = "' + summonerName + '";', function (error, results, fields) {
+    if (error) throw error;
+    console.log(results.insertId);
+    if (results[0] != null) {
+      return Boolean(true);
+    }
+    else {
+      console.log(summonerName + ' is not a valid name.');
+      return Boolean(false);
+    }
+  });
+}
+
+function checkTeamByNameExists(teamName) {
+  con.query('SELECT name FROM teams WHERE name = ' + teamName + ';', function (error, results, fields) {
+    if (error) throw error;
+    console.log(results.insertId);
+    if (results.name != null) {
+      return Boolean(true);
+    }
+    else {
+      console.log(teamName + ' is not a valid name.');
+      return Boolean(false);
+    }
+  });
+}
+
+function createTeam(name, summonersName) {
+  var allSummonersOk = true;
+  summonersName.forEach(summoner => {
+    if (checkSummonerDataExists(summoner) == false) {
+      allSummonersOk = false;
+    }
+  });
+  if (allSummonersOk && checkTeamByNameExists(name)) {
+    con.query('INSERT INTO teams (name, summonerName1, summonerName2, summonerName3, summonerName4, summonerName5) VALUES ("' + name + '", "' + summonersName[0] + '", "' + summonersName[1] + '", "' + summonersName[2] + '", "' + summonersName[3] + '", "' + summonersName[4] + '");', function (error, results, fields) {
       if (error) throw error;
-      console.log(results.insertId);
     });
   }
-  else {
-    console.log('Error: Summoner update not successful.');
-  }
+}
+
+function getSummonerDataByName(summonerName) {
+  con.query('SELECT * FROM summoners s INNER JOIN league l ON s.id = l.summonerId WHERE s.name = "' + summonerName + '";', function (error, results, fields) {
+    if (error) throw error;
+    console.log(results);
+    // We can create embeds using the MessageEmbed constructor
+    // Read more about all that you can do with the constructor
+    // over at https://discord.js.org/#/docs/main/master/class/MessageEmbed
+    const embed = new MessageEmbed()
+      // Set the title of the field
+      .setTitle('Stats de ' + results[0].name)
+      // Set the color of the embed
+      .setColor(0x0000FF)
+      .setAuthor('ManiaBot', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
+      // Set the main content of the embed
+      .setDescription(`Niveau d'invocateur : ` + results[0].summonerLevel)
+      .setThumbnail('https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
+      results.forEach(element => {
+        switch(element.queueType) {
+          case 'RANKED_SOLO_5x5':
+            embed.addFields(
+              { name: '__', value: "_**Solo/Duo**_" },
+            )
+            break;
+          case 'RANKED_FLEX_SR':
+            embed.addFields(
+              { name: '__', value: "_**Flexible**_" },
+            )
+            break;
+          default:
+            embed.addFields(
+              { name: '__', value: "_**File inconnue**_" },
+            )
+        }
+        embed.addField('Elo :', element.tier + " " + element.rank, true)
+        .addField('Victoire(s) :' + element.wins + "\tDéfaite(s) : " + element.losses, "Ratio : " + element.wins * 100 / (element.wins + element.losses), true)
+      });
+      //.addField('Inline field title', 'Some value here', true)
+      embed.setImage('https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
+      .setTimestamp()
+      .setFooter('Créé par les soins de Vinmania :)', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png');
+      message.reply(embed);
+  });
 }
 
 client.login(config.BOT_TOKEN);
