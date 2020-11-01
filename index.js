@@ -260,49 +260,76 @@ client.on("message", function(message) {
 
     var summonerName = "";
     for (var i = 1; i < args.length; i++) {
+      if (i > 1) {
+        summonerName += " ";
+      }
       summonerName += args[i];
     }
 
     if(updateSummonerData(summonerName) == false) {
-      message.reply(`Le nom d'invocateur n'existe pas !`);
+      return message.reply(`Le nom d'invocateur n'existe pas !`);
     }
 
-    if(checkSummonerDataExists(summonerName) == true) {
-      console.log('rlkelkerlkekerlkrleerkkerllk');
-      con.query('SELECT s.name, s.summonerLevel, l.queueType, l.tier, l.rank, l.wins, l.losses FROM summoners s INNER JOIN league l ON s.id = l.summonerId WHERE s.name = "' + summonerName + '";', function (error, results, fields) {
-        if (error) throw error;
-        console.log('res : ' + results);
-        const embed = new MessageEmbed()
-          .setTitle('Stats de ' + results[0].name)
-          .setColor(0x0000FF)
-          .setAuthor('ManiaBot', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
-          .setDescription(`Niveau d'invocateur : ` + results[0].summonerLevel)
-          .setThumbnail('https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
-          results.forEach(element => {
-            switch(element.queueType) {
-              case 'RANKED_SOLO_5x5':
-                embed.addFields(
-                  { name: '__', value: "_**Solo/Duo**_" },
-                )
-                break;
-              case 'RANKED_FLEX_SR':
-                embed.addFields(
-                  { name: '__', value: "_**Flexible**_" },
-                )
-                break;
-              default:
-                embed.addFields(
-                  { name: '__', value: "_**File inconnue**_" },
-                )
-            }
-            embed.addField('Elo :', element.tier + " " + element.rank, true)
-            .addField('Victoire(s) :' + element.wins + "\tDéfaite(s) : " + element.losses, "Ratio : " + element.wins * 100 / (element.wins + element.losses), true)
-          });
-          embed.setTimestamp()
-          .setFooter('Créé par les soins de Vinmania :)', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png');
-        message.reply(embed);
-      });
-    }
+    con.query('SELECT name FROM summoners WHERE name = "' + summonerName + '";', function (error, results, fields) {
+      if (error) throw error;
+      console.log(results.insertId);
+      if (results[0] == null) {
+        console.log(summonerName + ' is not a valid name.');
+        return message.reply(`Le nom d'invocateur n'existe pas !`);
+      }
+      else {
+        con.query('SELECT * FROM summoners s INNER JOIN league l ON s.id = l.summonerId WHERE s.name = "' + summonerName + '";', function (error, results, fields) {
+          if (error) throw error;
+          console.log(results);
+          if (results[0] != null) {
+            const embed = new MessageEmbed()
+            .setTitle('Stats de ' + results[0].name)
+            .setColor(0x0000FF)
+            .setAuthor('ManiaBot', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
+            .setDescription(`Niveau d'invocateur : ` + results[0].summonerLevel)
+            .setThumbnail('https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
+            results.forEach(element => {
+              switch(element.queueType) {
+                case 'RANKED_SOLO_5x5':
+                  embed.addFields(
+                    { name: '__', value: "__**Solo/Duo**__" },
+                  )
+                  break;
+                case 'RANKED_FLEX_SR':
+                  embed.addFields(
+                    { name: '__', value: "__**Flexible**__" },
+                  )
+                  break;
+                default:
+                  embed.addFields(
+                    { name: '__', value: "__**File inconnue**__" },
+                  )
+              }
+              embed.addField('Elo :', element.tier + " " + element.rank, true)
+              .addField('Victoire(s) :' + element.wins + "\tDéfaite(s) : " + element.losses, "Ratio : " + element.wins * 100 / (element.wins + element.losses), true)
+              .setTimestamp()
+              .setFooter('Créé par les soins de Vinmania :)', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png');
+            });
+            message.reply(embed);
+          } else {
+            con.query('SELECT * FROM summoners WHERE name = "' + summonerName + '";', function (error, results, fields) {
+              if (error) throw error;
+              const embedNoInfo = new MessageEmbed()
+              embedNoInfo.setTitle('Stats de ' + results[0].name)
+              .setColor(0x0000FF)
+              .setAuthor('ManiaBot', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
+              .setDescription(`Niveau d'invocateur : ` + results[0].summonerLevel)
+              .setThumbnail('https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
+              .addField('__', 'Ce joueur n\'a pas de statistiques en partie classée :(', true)
+              .setTimestamp()
+              .setFooter('Créé par les soins de Vinmania :)', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png');
+              message.reply(embedNoInfo);
+            });
+          }
+        });
+      }
+      
+    });
   }
 
   else {
@@ -486,12 +513,15 @@ function updateSummonerData(summonerName) {
     res.on('end', function() {
       var summonerJSON = JSON.parse(data);
       //console.log(summonerJSON);
-      if (!summonerJSON.status) {
+      if (summonerJSON.hasOwnProperty('id')) {
         con.query('REPLACE INTO summoners (id, accountId, puuid, name, profileIconId, revisionDate, summonerLevel) VALUES ("' + summonerJSON.id + '", "' + summonerJSON.accountId + '", "' + summonerJSON.puuid + '", "' + summonerJSON.name + '", ' + summonerJSON.profileIconId + ', ' + summonerJSON.revisionDate + ', ' + summonerJSON.summonerLevel + ');', function (error, results, fields) {
           if (error) throw error;
           console.log(results.insertId);
         });
         updateLeagueData(summonerJSON.id);
+      }
+      else if (summonerJSON.hasOwnProperty('status')) {
+        console.log('Error: No ranked data.');
       }
       else {
         console.log('Error: Summoner update not successful.');
@@ -534,17 +564,16 @@ function updateLeagueData(summonerId) {
 }
 
 function checkSummonerDataExists(summonerName) {
+  let check;
   con.query('SELECT name FROM summoners WHERE name = "' + summonerName + '";', function (error, results, fields) {
     if (error) throw error;
     console.log(results.insertId);
-    if (results[0] != null) {
-      return Boolean(true);
-    }
-    else {
+    if (results[0] == null) {
       console.log(summonerName + ' is not a valid name.');
-      return Boolean(false);
     }
+    check = results[0] != null;
   });
+  return Boolean(check);
 }
 
 function checkTeamByNameExists(teamName) {
@@ -573,50 +602,6 @@ function createTeam(name, summonersName) {
       if (error) throw error;
     });
   }
-}
-
-function getSummonerDataByName(summonerName) {
-  con.query('SELECT * FROM summoners s INNER JOIN league l ON s.id = l.summonerId WHERE s.name = "' + summonerName + '";', function (error, results, fields) {
-    if (error) throw error;
-    console.log(results);
-    // We can create embeds using the MessageEmbed constructor
-    // Read more about all that you can do with the constructor
-    // over at https://discord.js.org/#/docs/main/master/class/MessageEmbed
-    const embed = new MessageEmbed()
-      // Set the title of the field
-      .setTitle('Stats de ' + results[0].name)
-      // Set the color of the embed
-      .setColor(0x0000FF)
-      .setAuthor('ManiaBot', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
-      // Set the main content of the embed
-      .setDescription(`Niveau d'invocateur : ` + results[0].summonerLevel)
-      .setThumbnail('https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
-      results.forEach(element => {
-        switch(element.queueType) {
-          case 'RANKED_SOLO_5x5':
-            embed.addFields(
-              { name: '__', value: "_**Solo/Duo**_" },
-            )
-            break;
-          case 'RANKED_FLEX_SR':
-            embed.addFields(
-              { name: '__', value: "_**Flexible**_" },
-            )
-            break;
-          default:
-            embed.addFields(
-              { name: '__', value: "_**File inconnue**_" },
-            )
-        }
-        embed.addField('Elo :', element.tier + " " + element.rank, true)
-        .addField('Victoire(s) :' + element.wins + "\tDéfaite(s) : " + element.losses, "Ratio : " + element.wins * 100 / (element.wins + element.losses), true)
-      });
-      //.addField('Inline field title', 'Some value here', true)
-      embed.setImage('https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
-      .setTimestamp()
-      .setFooter('Créé par les soins de Vinmania :)', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png');
-      message.reply(embed);
-  });
 }
 
 client.login(config.BOT_TOKEN);
