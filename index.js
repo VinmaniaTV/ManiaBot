@@ -10,6 +10,7 @@ const client = new Discord.Client();
 const queue = new Map();
 
 var mysql = require('mysql');
+const { join } = require("path");
 
 var con = mysql.createConnection({
   host: config.MYSQLHOST,
@@ -90,6 +91,8 @@ client.on("message", function(message) {
         { name: '!play [lien YouTube]', value: 'Ajoute une musique à la liste d\'attente.', inline: false },
         { name: '!skip', value: 'Passe la musique actuellement jouée par ManiaBot.', inline: false },
         { name: '!stop', value: 'Arrête la musique.', inline: false },
+        { name: '!join', value: 'Déplace le bot dans le salon vocal où l\'utilisateur se trouve (ne marche que si le bot joue une musique).', inline: false },
+        { name: '!league [nom d\'invocateur]', value: 'Affiche les infos de base de l\'invocateur spécifié.', inline: false },
       )
       //.addField('Inline field title', 'Some value here', true)
       .setImage('https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
@@ -144,7 +147,7 @@ client.on("message", function(message) {
     var mm = String(today.getMonth() + 1).padStart(2, '1'); //January is 1!
     var yyyy = today.getFullYear();
 
-    con.query('SELECT name, subject, date_format(date, "%W %d %M %Y (%d/%m/%Y)") AS formatedDate FROM devoirs WHERE date >= "' + today + '" ORDER BY date;', function (error, results, fields) {
+    con.query('SELECT name, subject, date_format(date, "%W %d %M %Y (%d/%m/%Y)") AS formatedDate FROM devoirs WHERE date >= "' + yyyy + '-' + mm + '-' + dd + '" ORDER BY date;', function (error, results, fields) {
       if (error) throw error;
       console.log(results);
       const embed = new MessageEmbed()
@@ -180,6 +183,10 @@ client.on("message", function(message) {
   else if (command === `stop`) {
     stop(message, serverQueue);
     return;
+  }
+
+  else if (command === 'join') {
+    joinVocal(message, serverQueue);
   }
 
   // Calendar Commands.
@@ -265,71 +272,73 @@ client.on("message", function(message) {
       }
       summonerName += args[i];
     }
-
+    
     if(updateSummonerData(summonerName) == false) {
       return message.reply(`Le nom d'invocateur n'existe pas !`);
     }
-
-    con.query('SELECT name FROM summoners WHERE name = "' + summonerName + '";', function (error, results, fields) {
-      if (error) throw error;
-      console.log(results.insertId);
-      if (results[0] == null) {
-        console.log(summonerName + ' is not a valid name.');
-        return message.reply(`Le nom d'invocateur n'existe pas !`);
-      }
-      else {
-        con.query('SELECT * FROM summoners s INNER JOIN league l ON s.id = l.summonerId WHERE s.name = "' + summonerName + '";', function (error, results, fields) {
-          if (error) throw error;
-          console.log(results);
-          if (results[0] != null) {
-            const embed = new MessageEmbed()
-            .setTitle('Stats de ' + results[0].name)
-            .setColor(0x0000FF)
-            .setAuthor('ManiaBot', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
-            .setDescription(`Niveau d'invocateur : ` + results[0].summonerLevel)
-            .setThumbnail('https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
-            results.forEach(element => {
-              switch(element.queueType) {
-                case 'RANKED_SOLO_5x5':
-                  embed.addFields(
-                    { name: '__', value: "__**Solo/Duo**__" },
-                  )
-                  break;
-                case 'RANKED_FLEX_SR':
-                  embed.addFields(
-                    { name: '__', value: "__**Flexible**__" },
-                  )
-                  break;
-                default:
-                  embed.addFields(
-                    { name: '__', value: "__**File inconnue**__" },
-                  )
-              }
-              embed.addField('Elo :', element.tier + " " + element.rank, true)
-              .addField('Victoire(s) :' + element.wins + "\tDéfaite(s) : " + element.losses, "Ratio : " + element.wins * 100 / (element.wins + element.losses), true)
-              .setTimestamp()
-              .setFooter('Créé par les soins de Vinmania :)', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png');
-            });
-            message.reply(embed);
-          } else {
-            con.query('SELECT * FROM summoners WHERE name = "' + summonerName + '";', function (error, results, fields) {
-              if (error) throw error;
-              const embedNoInfo = new MessageEmbed()
-              embedNoInfo.setTitle('Stats de ' + results[0].name)
+    
+    
+    setTimeout(() => {
+      con.query('SELECT name FROM summoners WHERE name = "' + summonerName + '";', function (error, results, fields) {
+        if (error) throw error;
+        console.log(results.insertId);
+        if (results[0] == null) {
+          console.log(summonerName + ' is not a valid name.');
+          return message.reply(`Le nom d'invocateur n'existe pas !`);
+        }
+        else {
+          con.query('SELECT * FROM summoners s INNER JOIN league l ON s.id = l.summonerId WHERE s.name = "' + summonerName + '";', function (error, results, fields) {
+            if (error) throw error;
+            console.log(results);
+            if (results[0] != null) {
+              const embed = new MessageEmbed()
+              .setTitle('Stats de ' + results[0].name)
               .setColor(0x0000FF)
               .setAuthor('ManiaBot', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
               .setDescription(`Niveau d'invocateur : ` + results[0].summonerLevel)
               .setThumbnail('https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
-              .addField('__', 'Ce joueur n\'a pas de statistiques en partie classée :(', true)
-              .setTimestamp()
-              .setFooter('Créé par les soins de Vinmania :)', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png');
-              message.reply(embedNoInfo);
-            });
-          }
-        });
-      }
-      
-    });
+              results.forEach(element => {
+                switch(element.queueType) {
+                  case 'RANKED_SOLO_5x5':
+                    embed.addFields(
+                      { name: '__', value: "__**Solo/Duo**__" },
+                    )
+                    break;
+                  case 'RANKED_FLEX_SR':
+                    embed.addFields(
+                      { name: '__', value: "__**Flexible**__" },
+                    )
+                    break;
+                  default:
+                    embed.addFields(
+                      { name: '__', value: "__**File inconnue**__" },
+                    )
+                }
+                embed.addField('Elo :', element.tier + " " + element.rank + ' - ' + element.leaguePoints + ' LP', true)
+                .addField('Victoire(s) :' + element.wins + "\tDéfaite(s) : " + element.losses, "Ratio/Win rate: " + parseFloat(element.wins * 100 / (element.wins + element.losses)).toFixed(1) + ' %', true)
+                .setTimestamp()
+                .setFooter('Créé par les soins de Vinmania :)', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png');
+              });
+              message.reply(embed);
+            } else {
+              con.query('SELECT * FROM summoners WHERE name = "' + summonerName + '";', function (error, results, fields) {
+                if (error) throw error;
+                const embedNoInfo = new MessageEmbed()
+                embedNoInfo.setTitle('Stats de ' + results[0].name)
+                .setColor(0x0000FF)
+                .setAuthor('ManiaBot', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
+                .setDescription(`Niveau d'invocateur : ` + results[0].summonerLevel)
+                .setThumbnail('https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
+                .addField('__', 'Ce joueur n\'a pas de statistiques en partie classée :(', true)
+                .setTimestamp()
+                .setFooter('Créé par les soins de Vinmania :)', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png');
+                message.reply(embedNoInfo);
+              });
+            }
+          });
+        } 
+      });
+    }, 2000);
   }
 
   else {
@@ -368,8 +377,8 @@ async function execute(message, serverQueue) {
 
   const songInfo = await ytdl.getInfo(args[1]);
   const song = {
-    title: songInfo.title,
-    url: songInfo.video_url
+    title: songInfo.videoDetails.title,
+    url: songInfo.videoDetails.video_url
   };
 
   if (!serverQueue) {
@@ -412,12 +421,16 @@ function skip(message, serverQueue) {
 }
 
 function stop(message, serverQueue) {
-  if (!message.member.voice.channel)
+  /*
+  if (!message.member.voice.channel) 
     return message.channel.send(
       "Tu dois être dans un salon vocal pour arrêter la musique !"
     );
-  serverQueue.songs = [];
-  serverQueue.connection.dispatcher.end();
+  */
+  if (serverQueue && message.guild) {
+    serverQueue.songs = [];
+    serverQueue.connection.dispatcher.end();
+  }
 }
 
 function play(guild, song) {
@@ -437,6 +450,39 @@ function play(guild, song) {
   .on("error", error => console.error(error));
 dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
 serverQueue.textChannel.send(`Lecture de : **${song.title}**`);
+}
+
+async function joinVocal(message, serverQueue) {
+
+  const voiceChannel = message.member.voice.channel;
+  if (!voiceChannel)
+    return message.channel.send(
+      "Connecte-toi dans un salon vocal !"
+    );
+  const permissions = voiceChannel.permissionsFor(message.client.user);
+  if (!permissions.has("CONNECT") || !permissions.has("SPEAK")) {
+    return message.channel.send(
+      "Je n'ai pas la permission de rejoindre ton salon ou d'y parler ! :("
+    );
+  }
+
+  if (!serverQueue || serverQueue.songs === []) {
+    return message.channel.send(
+      "Je n'ai aucun son à jouer, pas le peine de te rejoindre !"
+    );
+  }
+  else {
+    try {
+      var connection = await voiceChannel.join();
+      serverQueue.textChannel = message.channel;
+      serverQueue.voiceChannel = voiceChannel;
+      serverQueue.connection = connection;
+    } catch (err) {
+      console.log(err);
+      queue.delete(message.guild.id);
+      return message.channel.send(err);
+    }
+  }
 }
 
 // Calendar Methods.
