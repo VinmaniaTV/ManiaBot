@@ -2,6 +2,8 @@ const Discord = require("discord.js");
 const config = require("./config.json");
 const ytdl = require("ytdl-core");
 const https = require('https');
+const fs = require("fs");
+const YouTubeSearch = require("youtube-sr");
 
 const { Client, MessageEmbed } = require('discord.js');
 
@@ -88,7 +90,7 @@ client.on("message", function(message) {
         { name: '!edt', value: 'Affiche l\'emploi du temps de la semaine. **[BETA]**', inline: false },
         { name: '!devoir', value: 'Affiche la liste des devoirs qui sont à venir.', inline: false },
         { name: '!newDevoir [nom du devoir] [matière] [date rendu]', value: 'Enregistre un nouveau devoir à venir.', inline: false },
-        { name: '!play [lien YouTube]', value: 'Ajoute une musique à la liste d\'attente.', inline: false },
+        { name: '!play [lien YouTube]|[nom du son]', value: 'Ajoute une musique à la liste d\'attente.', inline: false },
         { name: '!skip', value: 'Passe la musique actuellement jouée par ManiaBot.', inline: false },
         { name: '!stop', value: 'Arrête la musique.', inline: false },
         { name: '!join', value: 'Déplace le bot dans le salon vocal où l\'utilisateur se trouve (ne marche que si le bot joue une musique).', inline: false },
@@ -171,7 +173,7 @@ client.on("message", function(message) {
   // Music Bot commands.
 
   else if (command === `play`) {
-    execute(message, serverQueue);
+    execute(message, serverQueue);  
     return;
   }
   
@@ -369,13 +371,20 @@ async function execute(message, serverQueue) {
     );
   }
 
-  if (args.length > 2) {
-    return message.channel.send(
-      "Doucement ! Donne moi une seule musique à la fois !"
-    );
+  var songInfoURL;
+
+  if (!validURL(args[1])) {
+    await YouTubeSearch.search(args[1], { limit: 5 })
+      .then(x => {
+        songInfoURL = "https://www.youtube.com/watch?v=" + x[0].id;
+      })
+      .catch(console.error);
+  }
+  else {
+    songInfoURL = args[1];
   }
 
-  const songInfo = await ytdl.getInfo(args[1]);
+  const songInfo = await ytdl.getInfo(songInfoURL);
   const song = {
     title: songInfo.videoDetails.title,
     url: songInfo.videoDetails.video_url
@@ -483,6 +492,16 @@ async function joinVocal(message, serverQueue) {
       return message.channel.send(err);
     }
   }
+}
+
+function validURL(str) {
+  var pattern = new RegExp('^(https?:\\/\\/)?'+ // protocol
+    '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|'+ // domain name
+    '((\\d{1,3}\\.){3}\\d{1,3}))'+ // OR ip (v4) address
+    '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*'+ // port and path
+    '(\\?[;&a-z\\d%_.~+=-]*)?'+ // query string
+    '(\\#[-a-z\\d_]*)?$','i'); // fragment locator
+  return !!pattern.test(str);
 }
 
 // Calendar Methods.
