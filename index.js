@@ -323,6 +323,7 @@ client.on("message", function(message) {
               });
               message.reply(embed);
             } else {
+              SQLConnect();
               con.query('SELECT * FROM summoners WHERE name = "' + summonerName + '";', function (error, results, fields) {
                 if (error) throw error;
                 const embedNoInfo = new MessageEmbed()
@@ -336,6 +337,8 @@ client.on("message", function(message) {
                 .setFooter('Créé par les soins de Vinmania :)', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png');
                 message.reply(embedNoInfo);
               });
+              con.end();
+              console.log("MySQL disconnected!");
             }
           });
         } 
@@ -374,7 +377,14 @@ async function execute(message, serverQueue) {
   var songInfoURL;
 
   if (!validURL(args[1])) {
-    await YouTubeSearch.search(args[1], { limit: 5 })
+    var songSearch = "";
+    for (var i = 1; i < args.length; i++) {
+      if (i > 1) {
+        songSearch += " ";
+      }
+      songSearch += args[i];
+    }
+    await YouTubeSearch.search(songSearch, { limit: 5 })
       .then(x => {
         songInfoURL = "https://www.youtube.com/watch?v=" + x[0].id;
       })
