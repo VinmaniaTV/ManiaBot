@@ -7,5 +7,7 @@
     "MYSQLPASSWORD": "password",
     "MYSQLDATABASE": "database",
     "CALENDAR": "iCalendarURL (JSON required)",
-    "RIOT_API_KEY": "riot_api_key"
+    "RIOT_API_KEY": "riot_api_key",
+    "OSU_CLIENT_ID": "osu_client_id",
+    "OSU_API_KEY": "osu_api_key"
 }

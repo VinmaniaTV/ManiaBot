@@ -4,6 +4,7 @@ const ytdl = require("ytdl-core");
 const https = require('https');
 const fs = require("fs");
 const YouTubeSearch = require("youtube-sr");
+const fetch = require('node-fetch');
 
 const { Client, MessageEmbed } = require('discord.js');
 
@@ -48,7 +49,7 @@ client.once("disconnect", () => {
   console.log("Disconnect!");
 });
 
-client.on("message", function(message) {
+client.on("message", async function(message) {
   if (message.author.bot) return;
   if (!message.content.startsWith(config.PREFIX)) return;
 
@@ -95,6 +96,9 @@ client.on("message", function(message) {
         { name: '!stop', value: 'Arrête la musique.', inline: false },
         { name: '!join', value: 'Déplace le bot dans le salon vocal où l\'utilisateur se trouve (ne marche que si le bot joue une musique).', inline: false },
         { name: '!league [nom d\'invocateur]', value: 'Affiche les infos de base de l\'invocateur spécifié.', inline: false },
+        { name: '!osu [nom d\'utilisateur]', value: 'Affiche les infos de base du joueur spécifié sur Osu!', inline: false },
+        { name: '!pf', value: 'Pile ou face.', inline: false },
+        { name: '!rdm [noms]', value: 'Entrez des noms séparés d\'un espace et un seul sera retourné au hasard.', inline: false },
       )
       //.addField('Inline field title', 'Some value here', true)
       .setImage('https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
@@ -260,6 +264,8 @@ client.on("message", function(message) {
     });
   }
 
+  // League Commands
+
   else if (command === "league") {
     const args = message.content.slice(config.PREFIX.length).trim().split(' ');
 
@@ -344,6 +350,64 @@ client.on("message", function(message) {
         } 
       });
     }, 2000);
+  }
+
+  // Osu Commands
+
+  else if (command === "osu") {
+    const args = message.content.slice(config.PREFIX.length).trim().split(' ');
+
+    if (args.length == 1) {
+      return message.reply(`Tu n'as pas spécifié de nom d'utilisateur !`);
+    }
+
+    var osuUsername = "";
+    for (var i = 1; i < args.length; i++) {
+      if (i > 1) {
+        osuUsername += " ";
+      }
+      osuUsername += args[i];
+    }
+
+    let osuData = await getOsuUser(osuUsername);
+    console.log(osuData)
+    const embed = new MessageEmbed()
+    .setTitle(osuData.is_online ? "Stats Osu! de " + osuData.username + " 🟢" : "Stats Osu! de " + osuData.username + " 🔴")
+    .setColor(0x0000FF)
+    .setAuthor('ManiaBot', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png')
+    .setDescription(`Niveau : ` + osuData.statistics.level.current + ' | ' + osuData.statistics.level.progress + "%")
+    if (validURL(osuData.avatar_url)) {
+      embed.setThumbnail(osuData.avatar_url)
+    }
+    else {
+      embed.attachFiles(['img/osuGuest.png'])
+      .setThumbnail('attachment://osuGuest.png') 
+    }
+    embed.addFields(
+      { name: 'Statistiques Osu! :', value: "PP : " + osuData.statistics.pp + "\nTop : " + osuData.statistics.pp_rank + "\nTop par pays : " + osuData.statistics.rank.country + "\nPrécision : " + osuData.statistics.hit_accuracy + "%\nNombre de plays : " + osuData.statistics.play_count },
+     )  
+    .setTimestamp()
+    .setFooter('Créé par les soins de Vinmania :)', 'https://static-cdn.jtvnw.net/jtv_user_pictures/f7fa0018-26d3-4398-b0dd-d4642842d87d-profile_image-70x70.png');
+    message.reply(embed);
+  }
+
+  else if (command === "pf") {
+    var res = Math.random() * 100;
+    if (res < 50) {
+      message.channel.send('Pile !');
+    }
+    else {
+      message.channel.send('Face !');
+    }
+  }
+
+  else if (command === "rdm") {
+    const args = message.content.slice(config.PREFIX.length).trim().split(' ');
+
+    if (args.length == 1) {
+      return message.reply(`Donne-moi des noms !`);
+    }
+    message.channel.send('L\'heureux gagnant est ' + args[Math.floor(Math.random() * (args.length - 1)) + 1] + ' !');
   }
 
   else {
@@ -677,6 +741,47 @@ function createTeam(name, summonersName) {
       if (error) throw error;
     });
   }
+}
+
+// Osu! Methods
+
+async function getOsuUser(osuUsername) {
+
+  const url = new URL("https://osu.ppy.sh/api/v2/users/" + osuUsername + "/osu");
+
+  const res = await fetch("https://osu.ppy.sh/oauth/token", {
+    method: 'post',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+        "grant_type": "client_credentials",
+        "client_id": 3904,
+        "client_secret": config.OSU_API_KEY,
+        "scope": "public"
+    })
+  })
+  .then(response => response.json())
+  .then(auth_key => {
+
+    let headers = {
+      "Authorization": "Bearer " + auth_key.access_token,
+      "Accept": "application/json",
+      "Content-Type": "application/json",
+    }
+
+    return fetch(url, {
+      method: "GET",
+      headers: headers,
+    })
+    .then(response => response.json())
+    .then(json => {
+      return json
+    });
+  });
+
+  return res;
 }
 
 client.login(config.BOT_TOKEN);
