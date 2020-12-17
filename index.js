@@ -410,6 +410,32 @@ client.on("message", async function(message) {
     message.channel.send('L\'heureux gagnant est ' + args[Math.floor(Math.random() * (args.length - 1)) + 1] + ' !');
   }
 
+  else if (command === "addSample") {
+    const args = message.content.slice(config.PREFIX.length).trim().split(' ');
+
+    if (message.attachments.size <= 0) {
+      return message.reply("Tu dois donner ton sample avec !addSample.");
+    }
+
+    message.attachments.url
+    
+    if (message.attachments.url === "^(https?|ftp|file):\/\/(www.)?(.*?)\.(mp3)$") {
+      const downloadFile = (async (url, path) => {
+        const res = await fetch(url);
+        const fileStream = fs.createWriteStream(path);
+        await new Promise((resolve, reject) => {
+            res.body.pipe(fileStream);
+            res.body.on("error", reject);
+            fileStream.on("finish", resolve);
+          });
+      });
+    }
+    else {
+      message.reply("Tu dois me fournir un fichier mp3 pour que je puisse j'ajouer à la bibliothèque.")
+    }
+    
+  }
+
   else {
     message.reply("**\\*bip\\*** Je suis désolé. **\\*bip\\*** La commande n'existe pas (ou pas encore). **\\*bip\\***");
   }
@@ -610,10 +636,10 @@ Date.prototype.getWeek = function (dowOffset) {
 
 // League methods
 
-function getRiotAPIData(request, args) {
+async function getRiotAPIData(request, args) {
   var url = 'https://euw1.api.riotgames.com'+ request + args + '?api_key=' + config.RIOT_API_KEY;
 
-  let req = https.get(url, (res) => {
+  let req = await https.get(url, (res) => {
     let data = '';
 
     res.on('data', function(stream) {
@@ -638,68 +664,42 @@ function getRiotAPIData(request, args) {
   req.on('error', function(e) {
       console.log(e.message);
   });
+
+  return req;
 }
 
 function updateSummonerData(summonerName) {
-  var url = 'https://euw1.api.riotgames.com/lol/summoner/v4/summoners/by-name/'+ summonerName + '?api_key=' + config.RIOT_API_KEY;
-
-  let req = https.get(url, (res) => {
-    let data = '';
-
-    res.on('data', function(stream) {
-      data += stream;
+  var summonerJSON = getRiotAPIData('/lol/summoner/v4/summoners/by-name/', summonerName);
+  if (summonerJSON.hasOwnProperty('id')) {
+    con.query('REPLACE INTO summoners (id, accountId, puuid, name, profileIconId, revisionDate, summonerLevel) VALUES ("' + summonerJSON.id + '", "' + summonerJSON.accountId + '", "' + summonerJSON.puuid + '", "' + summonerJSON.name + '", ' + summonerJSON.profileIconId + ', ' + summonerJSON.revisionDate + ', ' + summonerJSON.summonerLevel + ');', function (error, results, fields) {
+      if (error) throw error;
+      console.log(results.insertId);
     });
-    res.on('end', function() {
-      var summonerJSON = JSON.parse(data);
-      //console.log(summonerJSON);
-      if (summonerJSON.hasOwnProperty('id')) {
-        con.query('REPLACE INTO summoners (id, accountId, puuid, name, profileIconId, revisionDate, summonerLevel) VALUES ("' + summonerJSON.id + '", "' + summonerJSON.accountId + '", "' + summonerJSON.puuid + '", "' + summonerJSON.name + '", ' + summonerJSON.profileIconId + ', ' + summonerJSON.revisionDate + ', ' + summonerJSON.summonerLevel + ');', function (error, results, fields) {
-          if (error) throw error;
-          console.log(results.insertId);
-        });
-        updateLeagueData(summonerJSON.id);
-      }
-      else if (summonerJSON.hasOwnProperty('status')) {
-        console.log('Error: No ranked data.');
-      }
-      else {
-        console.log('Error: Summoner update not successful.');
-      }
-    })
-  });
-
-  req.on('error', function(e) {
-      console.log(e.message);
-  });
+    updateLeagueData(summonerJSON.id);
+  }
+  else if (summonerJSON.hasOwnProperty('status')) {
+    console.log('Error: No ranked data.');
+  }
+  else {
+    console.log('Error: Summoner update not successful.');
+  }
 }
 
 function updateLeagueData(summonerId) {
-  var url = 'https://euw1.api.riotgames.com/lol/league/v4/entries/by-summoner/'+ summonerId + '?api_key=' + config.RIOT_API_KEY;
-
-  let req = https.get(url, (res) => {
-    let data = '';
-
-    res.on('data', function(stream) {
-      data += stream;
+  var leagueJSON = getRiotAPIData('/lol/league/v4/entries/by-summoner/', summonerId);
+  if (leagueJSON != null) {
+    leagueJSON.forEach(element => {
+      con.query('REPLACE INTO league (leagueId, queueType, tier, rank, summonerId, summonerName, leaguePoints, wins, losses, veteran, inactive, freshBlood, hotStreak) VALUES ("' + element.leagueId + '", "' + element.queueType + '", "' + element.tier + '", "' + element.rank + '", "' + element.summonerId + '", "' + element.summonerName + '", ' + element.leaguePoints + ', ' + element.wins + ', ' + element.losses + ', ' + element.veteran + ', ' + element.inactive + ', ' + element.freshBlood + ', ' + element.hotStreak +');', function (error, results, fields) {
+        if (error) throw error;
+        console.log(results.insertId);
+      });
     });
-    res.on('end', function() {
-      var leagueJSON = JSON.parse(data);
-      //console.log(leagueJSON);
-      if (leagueJSON != null) {
-        leagueJSON.forEach(element => {
-          con.query('REPLACE INTO league (leagueId, queueType, tier, rank, summonerId, summonerName, leaguePoints, wins, losses, veteran, inactive, freshBlood, hotStreak) VALUES ("' + element.leagueId + '", "' + element.queueType + '", "' + element.tier + '", "' + element.rank + '", "' + element.summonerId + '", "' + element.summonerName + '", ' + element.leaguePoints + ', ' + element.wins + ', ' + element.losses + ', ' + element.veteran + ', ' + element.inactive + ', ' + element.freshBlood + ', ' + element.hotStreak +');', function (error, results, fields) {
-            if (error) throw error;
-            console.log(results.insertId);
-          });
-        });
-        return Boolean(true);
-      }
-      else {
-        console.log('Error: League update not successful.');
-        return Boolean(false);
-      }
-    })
-  });
+    return Boolean(true);
+  }
+  else {
+    console.log('Error: League update not successful.');
+    return Boolean(false);
+  }
 }
 
 function checkSummonerDataExists(summonerName) {
@@ -743,6 +743,14 @@ function createTeam(name, summonersName) {
   }
 }
 
+function getTeamData(name) {
+  SQLConnect();
+  con.query('SELECT * FROM leagueTeams WHERE name = ' + name, function (error, results, fields) {
+    if (error) throw error;
+    return results;
+  });
+}
+
 // Osu! Methods
 
 async function getOsuUser(osuUsername) {
@@ -782,6 +790,20 @@ async function getOsuUser(osuUsername) {
   });
 
   return res;
+}
+
+// Sample methods
+
+function addSample() {
+
+}
+
+function playSample() {
+
+}
+
+function displaySamples () {
+
 }
 
 client.login(config.BOT_TOKEN);
