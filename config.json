@@ -1,5 +1,5 @@
 {
-    "PREFIX": "!",
+    "PREFIX": "/",
     "BOT_TOKEN": "bot_token",
     "MYSQLHOST": "localhost",
     "MYSQLPORT": 3306,
