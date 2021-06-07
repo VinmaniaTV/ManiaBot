@@ -1,15 +1,45 @@
 {
-  "name": "maniabot",
-  "version": "1.0.0",
-  "description": "ManiaBot Discord",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "discord.js": "^12.3.1",
-    "mysql": "^2.18.1"
-  }
+    "name": "maniabot",
+    "version": "1.0.0",
+    "description": "ManiaBot",
+    "main": "index.js",
+    "scripts": {
+        "start": "node src/index.js",
+        "watch": "tsc -p tsconfig.json -w",
+        "test": "mocha -r ts-node/register \"tests/**/*.spec.ts\""
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/VinmaniaTV/ManiaBot.git"
+    },
+    "author": "Vinmania",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/VinmaniaTV/ManiaBot/issues"
+    },
+    "homepage": "https://github.com/VinmaniaTV/ManiaBot#readme",
+    "dependencies": {
+        "@discordjs/opus": "^0.5.0",
+        "@types/node": "^15.0.2",
+        "discord.js": "^12.5.3",
+        "dotenv": "^9.0.0",
+        "ffmpeg-static": "^4.3.0",
+        "https": "^1.0.0",
+        "inversify": "^5.1.1",
+        "mysql": "^2.18.1",
+        "prism-media": "^1.2.9",
+        "reflect-metadata": "^0.1.13",
+        "typescript": "^4.2.4",
+        "youtube-sr": "^4.0.7",
+        "ytdl-core": "^4.8.0"
+    },
+    "devDependencies": {
+        "@types/chai": "^4.2.17",
+        "@types/mocha": "^8.2.2",
+        "@types/mysql": "^2.15.18",
+        "chai": "^4.3.4",
+        "mocha": "^8.4.0",
+        "ts-mockito": "^2.6.1",
+        "ts-node": "^9.1.1"
+    }
 }
