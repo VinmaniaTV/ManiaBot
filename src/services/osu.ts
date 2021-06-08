@@ -3,11 +3,14 @@ import { TYPES } from "../types";
 
 @injectable()
 export class Osu {
+    readonly osuClientId: number;
     readonly osuAPIKey: string;
     
     constructor(
+        @inject(TYPES.OsuClientId) osuClientId: number,
         @inject(TYPES.OsuAPIKey) osuAPIKey: string,
     ) {
+        this.osuClientId = osuClientId;
         this.osuAPIKey = osuAPIKey;
     }
 
@@ -23,7 +26,7 @@ export class Osu {
                 },
                 body: JSON.stringify({
                     "grant_type": "client_credentials",
-                    "client_id": 3904,
+                    "client_id": this.osuClientId,
                     "client_secret": this.osuAPIKey,
                     "scope": "public"
                 })

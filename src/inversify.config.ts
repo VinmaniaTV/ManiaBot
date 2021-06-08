@@ -8,6 +8,7 @@ import { PingFinder } from "./services/ping-finder";
 import { Music } from "./services/music";
 import { League } from "./services/league";
 import { Osu } from "./services/osu";
+import { Slash } from "./services/slash";
 
 let container = new Container();
 
@@ -23,10 +24,12 @@ container.bind<string>(TYPES.MysqlDatabase).toConstantValue(process.env.MYSQLDAT
 container.bind<string>(TYPES.Calendar).toConstantValue(process.env.CALENDAR);
 container.bind<string>(TYPES.RiotAPIKey).toConstantValue(process.env.RIOT_API_KEY);
 container.bind<string>(TYPES.OsuAPIKey).toConstantValue(process.env.OSU_API_KEY);
+container.bind<string>(TYPES.OsuClientId).toConstantValue(process.env.OSU_CLIENT_ID);
 container.bind<MessageResponder>(TYPES.MessageResponder).to(MessageResponder).inSingletonScope();
 container.bind<PingFinder>(TYPES.PingFinder).to(PingFinder).inSingletonScope();
 container.bind<Music>(TYPES.Music).to(Music).inSingletonScope();
 container.bind<League>(TYPES.League).to(League).inSingletonScope();
 container.bind<Osu>(TYPES.Osu).to(Osu).inSingletonScope();
+container.bind<Slash>(TYPES.Slash).to(Slash).inSingletonScope();
 
 export default container;

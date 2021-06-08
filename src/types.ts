@@ -14,6 +14,8 @@ export const TYPES = {
   Music: Symbol("Music"),
   League: Symbol("League"),
   Osu: Symbol("Osu"),
+  Slash: Symbol("Slash"),
   RiotAPIKey: Symbol("RiotAPIKey"),
   OsuAPIKey: Symbol("OsuAPIKey"),
+  OsuClientId: Symbol("OsuClientId"),
 };
