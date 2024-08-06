@@ -38,6 +38,8 @@ const client = new discord_js_1.Client({
     ],
 });
 client.slashCommands = new discord_js_1.Collection();
+// List of queues for each server
+global.queueSongs = new Array();
 const handlersDirs = (0, path_1.join)(__dirname, './handlers');
 (0, fs_1.readdirSync)(handlersDirs).forEach((file) => {
     require(`${handlersDirs}/${file}`)(client);

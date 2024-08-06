@@ -15,6 +15,10 @@ const event = {
         }
         catch (error) {
             console.error(error);
+            if (interaction.replied) {
+                await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
+                return;
+            }
             await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
         }
     }

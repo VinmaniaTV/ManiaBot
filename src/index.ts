@@ -2,7 +2,7 @@ import { Client, Collection, GatewayIntentBits } from 'discord.js';
 import * as dotenv from 'dotenv';
 import { readdirSync } from 'fs';
 import { join } from 'path';
-import { SlashCommand } from './types';
+import { SlashCommand, SongQueue } from './types';
 
 dotenv.config();
 
@@ -17,6 +17,9 @@ const client = new Client({
 });
 
 client.slashCommands = new Collection<string, SlashCommand>();
+
+// List of queues for each server
+global.queueSongs = new Array<SongQueue>();
 
 const handlersDirs = join(__dirname, './handlers');
 

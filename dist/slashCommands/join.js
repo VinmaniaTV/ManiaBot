@@ -15,6 +15,12 @@ exports.command = {
             await interaction.reply('Vous devez être dans un salon vocal pour utiliser cette commande.');
             return;
         }
+        // Check if the bot is already connected to the same voice channel
+        const connection = (0, voice_1.getVoiceConnection)(voiceChannel.guild.id);
+        if (connection && connection.joinConfig.channelId === voiceChannel.id) {
+            await interaction.reply('Le bot est déjà connecté à ce salon vocal.');
+            return;
+        }
         (0, voice_1.joinVoiceChannel)({
             channelId: voiceChannel.id,
             guildId: voiceChannel.guild.id,

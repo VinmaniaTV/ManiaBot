@@ -1,4 +1,4 @@
-import { joinVoiceChannel } from "@discordjs/voice";
+import { getVoiceConnection, joinVoiceChannel } from "@discordjs/voice";
 import { SlashCommandBuilder, ThreadChannel } from "discord.js";
 import { SlashCommand } from "../types";
 
@@ -14,6 +14,13 @@ export const command: SlashCommand = {
         
         if (!voiceChannel) {
             await interaction.reply('Vous devez être dans un salon vocal pour utiliser cette commande.');
+            return;
+        }
+
+        // Check if the bot is already connected to the same voice channel
+        const connection = getVoiceConnection(voiceChannel.guild.id);
+        if (connection && connection.joinConfig.channelId === voiceChannel.id) {
+            await interaction.reply('Le bot est déjà connecté à ce salon vocal.');
             return;
         }
         

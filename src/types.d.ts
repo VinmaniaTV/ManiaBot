@@ -1,5 +1,5 @@
 import { BaseGuildVoiceChannel, CommandInteraction, GuildTextBasedChannel, SlashCommandBuilder, TextChannel, ThreadChannel, VoiceChannel } from "discord.js";
-import { AudioPlayer, AudioResource } from "@discordjs/voice";
+import { AudioPlayer, AudioResource, VoiceConnection } from "@discordjs/voice";
 
 declare global {
   namespace NodeJS {
@@ -8,6 +8,7 @@ declare global {
         TOKEN: string;
     }
   }
+  var queueSongs: SongQueue[];
 }
 
 declare module 'discord.js' {
@@ -29,9 +30,9 @@ export interface SlashCommand {
 }
 
 export interface SongQueue {
-    textChannel: GuildTextBasedChannel;
+    guildId: string;
     voiceChannel: ThreadChannel;
-    connection: any;
+    connection: VoiceConnection;
     songs: queueSong[];
     volume: number;
     playing: boolean;
