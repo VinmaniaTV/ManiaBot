@@ -1,4 +1,5 @@
-import { CommandInteraction, SlashCommandBuilder } from "discord.js";
+import { BaseGuildVoiceChannel, CommandInteraction, GuildTextBasedChannel, SlashCommandBuilder, TextChannel, ThreadChannel, VoiceChannel } from "discord.js";
+import { AudioPlayer, AudioResource } from "@discordjs/voice";
 
 declare global {
   namespace NodeJS {
@@ -23,8 +24,27 @@ export interface BotEvent {
 
 export interface SlashCommand {
     name: string;
-    data: SlashCommandBuilder | Omit<SlashCommandBuilder, 'addSubcommand' | 'addSubcommandGroup'>;
+    data: SlashCommandBuilder | any;
     async execute: (interaction: CommandInteraction) => Promise<void>;
+}
+
+export interface SongQueue {
+    textChannel: GuildTextBasedChannel;
+    voiceChannel: ThreadChannel;
+    connection: any;
+    songs: queueSong[];
+    volume: number;
+    playing: boolean;
+    player: AudioPlayer;
+}
+
+export interface Song {
+    title: string;
+    url: string;
+    thumbnail: string;
+    duration: number;
+    requester: string;
+    resource: AudioResource;
 }
 
 export {}

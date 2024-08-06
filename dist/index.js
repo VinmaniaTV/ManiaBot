@@ -33,7 +33,8 @@ const client = new discord_js_1.Client({
         discord_js_1.GatewayIntentBits.Guilds,
         discord_js_1.GatewayIntentBits.GuildMessages,
         discord_js_1.GatewayIntentBits.GuildMessageReactions,
-        discord_js_1.GatewayIntentBits.MessageContent
+        discord_js_1.GatewayIntentBits.MessageContent,
+        discord_js_1.GatewayIntentBits.GuildVoiceStates
     ],
 });
 client.slashCommands = new discord_js_1.Collection();
