@@ -7,8 +7,23 @@ exports.command = {
     name: 'join',
     data: new discord_js_1.SlashCommandBuilder()
         .setName('join')
-        .setDescription('Rejoindre un salon vocal.'),
+        .setDescription('Rejoindre un salon vocal.')
+        .addChannelOption(option => option.setName('channel')
+        .setDescription('Le salon vocal à rejoindre.')
+        .setRequired(false)
+        .addChannelTypes([discord_js_1.ChannelType.GuildVoice])),
     async execute(interaction) {
+        if (interaction.options.get('channel')) {
+            const voiceChannel = interaction.guild?.channels.cache.get(interaction.options.get('channel')?.value);
+            (0, voice_1.joinVoiceChannel)({
+                channelId: voiceChannel.id,
+                guildId: voiceChannel.guild.id,
+                adapterCreator: voiceChannel.guild.voiceAdapterCreator,
+                selfDeaf: false
+            });
+            await interaction.reply(`Rejoins le salon vocal ${voiceChannel.name}`);
+            return;
+        }
         const member = interaction.guild?.members.cache.get(interaction.user.id);
         const voiceChannel = member?.voice.channelId ? await interaction.guild?.channels.fetch(member.voice.channelId) : null;
         if (!voiceChannel) {

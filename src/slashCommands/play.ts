@@ -160,12 +160,14 @@ async function getQueue(interaction: CommandInteraction): Promise<SongQueue> {
         queue.connection.subscribe(queue.player);
 
         queue.player.on(AudioPlayerStatus.Playing, () => {
+            queue.playing = true;
             console.log(`La musique ${queue.songs[0].title} est en cours de lecture.`);
         });
 
         queue.player.on(AudioPlayerStatus.Idle, () => {
             console.log('La musique est terminée.');
             queue.songs.shift();
+            queue.playing = false;
             if (queue.songs.length > 0) {
                 queue.player.stop();
                 queue.player.play(queue.songs[0].resource);
