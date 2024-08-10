@@ -42,8 +42,6 @@ export const command: SlashCommand = {
 
             let connection;
 
-            console.log(queue.player.state.status);
-
             if (!queue.connection || queue.connection.state.status === 'destroyed') {
                 connection = joinVoiceChannel({
                     channelId: channel.id,
@@ -154,7 +152,7 @@ async function getQueue(interaction: CommandInteraction): Promise<SongQueue> {
             player: createAudioPlayer({
                 behaviors: {
                     noSubscriber: NoSubscriberBehavior.Pause,
-                    maxMissedFrames: 10,
+                    maxMissedFrames: 0,
                 }
             })
         };
@@ -162,15 +160,15 @@ async function getQueue(interaction: CommandInteraction): Promise<SongQueue> {
         queue.connection.subscribe(queue.player);
 
         queue.player.on(AudioPlayerStatus.Playing, () => {
-            console.log('La musique joue.');
+            console.log(`La musique ${queue.songs[0].title} est en cours de lecture.`);
         });
 
         queue.player.on(AudioPlayerStatus.Idle, () => {
             console.log('La musique est terminée.');
             queue.songs.shift();
             if (queue.songs.length > 0) {
-                const resource = queue.songs[0].resource;
-                queue.player.play(resource);
+                queue.player.stop();
+                queue.player.play(queue.songs[0].resource);
             } else {
                 queue.connection.destroy();
             }

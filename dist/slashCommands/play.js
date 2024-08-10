@@ -39,7 +39,6 @@ exports.command = {
         }
         const queue = await getQueue(interaction);
         let connection;
-        console.log(queue.player.state.status);
         if (!queue.connection || queue.connection.state.status === 'destroyed') {
             connection = (0, voice_1.joinVoiceChannel)({
                 channelId: channel.id,
@@ -133,20 +132,20 @@ async function getQueue(interaction) {
             player: (0, voice_1.createAudioPlayer)({
                 behaviors: {
                     noSubscriber: voice_1.NoSubscriberBehavior.Pause,
-                    maxMissedFrames: 10,
+                    maxMissedFrames: 0,
                 }
             })
         };
         queue.connection.subscribe(queue.player);
         queue.player.on(voice_1.AudioPlayerStatus.Playing, () => {
-            console.log('La musique joue.');
+            console.log(`La musique ${queue.songs[0].title} est en cours de lecture.`);
         });
         queue.player.on(voice_1.AudioPlayerStatus.Idle, () => {
             console.log('La musique est terminée.');
             queue.songs.shift();
             if (queue.songs.length > 0) {
-                const resource = queue.songs[0].resource;
-                queue.player.play(resource);
+                queue.player.stop();
+                queue.player.play(queue.songs[0].resource);
             }
             else {
                 queue.connection.destroy();
