@@ -3,6 +3,7 @@ import { SlashCommand, Song, SongQueue } from "../types";
 import { AudioPlayerStatus, createAudioPlayer, createAudioResource, joinVoiceChannel, NoSubscriberBehavior } from "@discordjs/voice";
 import youtubedl, { Format } from "youtube-dl-exec";
 import ytdl from "ytdl-core";
+import { YtdlCore, toPipeableStream } from '@ybd-project/ytdl-core';
 import YouTube from "youtube-sr";
 
 export const command: SlashCommand = {
@@ -70,7 +71,7 @@ export const command: SlashCommand = {
 
             // Fetch video info
             let videoId = ytdl.getURLVideoID(youtubeUrl);
-            let info = await ytdl.getInfo(videoId);
+            let info = await new YtdlCore({}).getFullInfo(youtubeUrl);
             
             //get the best audio format available
             const bestAudioFormat = youtubeContent.formats.find((format: Format) => format.ext === 'm4a');
@@ -79,7 +80,7 @@ export const command: SlashCommand = {
                 title: info.videoDetails.title,
                 url: bestAudioFormat.url,
                 thumbnail: info.videoDetails.thumbnails[0].url,
-                duration: parseInt(info.videoDetails.lengthSeconds),
+                duration: info.videoDetails.lengthSeconds,
                 requester: interaction.user.tag,
                 resource: createAudioResource(bestAudioFormat.url)
             };
@@ -152,7 +153,7 @@ async function getQueue(interaction: CommandInteraction): Promise<SongQueue> {
             player: createAudioPlayer({
                 behaviors: {
                     noSubscriber: NoSubscriberBehavior.Pause,
-                    maxMissedFrames: 0,
+                    maxMissedFrames: 5,
                 }
             })
         };
