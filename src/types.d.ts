@@ -9,6 +9,7 @@ declare global {
     }
   }
   var queueSongs: SongQueue[];
+  var connectedUsers: Map<string, NodeJS.Timeout>;
 }
 
 declare module 'discord.js' {

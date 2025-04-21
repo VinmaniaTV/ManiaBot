@@ -21,6 +21,9 @@ client.slashCommands = new Collection<string, SlashCommand>();
 // List of queues for each server
 global.queueSongs = new Array<SongQueue>();
 
+// List of connected user in a voiceChannel
+global.connectedUsers = new Map<string, NodeJS.Timeout>();
+
 const handlersDirs = join(__dirname, './handlers');
 
 readdirSync(handlersDirs).forEach((file) => {

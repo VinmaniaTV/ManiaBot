@@ -10,7 +10,7 @@ export const command: SlashCommand = {
     async execute(interaction) {
 
         // if the bot is connected to a voice channel
-        const connection = getVoiceConnection(interaction.guildId);
+        const connection = getVoiceConnection(interaction.guildId as string);
 
         if (connection) {
             connection.destroy();

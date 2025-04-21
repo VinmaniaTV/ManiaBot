@@ -1,6 +1,6 @@
 import { CommandInteraction, EmbedBuilder, flatten, Interaction, SlashCommandBuilder, ThreadChannel } from "discord.js";
 import { SlashCommand, Song, SongQueue } from "../types";
-import { AudioPlayerStatus, createAudioPlayer, createAudioResource, joinVoiceChannel, NoSubscriberBehavior } from "@discordjs/voice";
+import { AudioPlayerStatus, createAudioPlayer, createAudioResource, DiscordGatewayAdapterCreator, joinVoiceChannel, NoSubscriberBehavior } from "@discordjs/voice";
 import youtubedl, { Format } from "youtube-dl-exec";
 import ytdl from "ytdl-core";
 import { YtdlCore, toPipeableStream } from '@ybd-project/ytdl-core';
@@ -53,7 +53,10 @@ export const command: SlashCommand = {
 
                 connection.subscribe(queue.player);
 
-                global.queueSongs.find(q => q.voiceChannel.id === channel.id).connection = connection;
+                const queueSong = global.queueSongs.find(q => q.voiceChannel.id === channel.id);
+                if (queueSong) {
+                    queueSong.connection = connection;
+                }
             } else {
                 connection = queue.connection;
             }
@@ -78,11 +81,11 @@ export const command: SlashCommand = {
             
             let song: Song = {
                 title: info.videoDetails.title,
-                url: bestAudioFormat.url,
+                url: bestAudioFormat?.url as string,
                 thumbnail: info.videoDetails.thumbnails[0].url,
                 duration: info.videoDetails.lengthSeconds,
                 requester: interaction.user.tag,
-                resource: createAudioResource(bestAudioFormat.url)
+                resource: createAudioResource(bestAudioFormat?.url as string)
             };
 
             const isAddedToQueueMessage = await addSong(interaction, song);
@@ -135,16 +138,16 @@ function validURL(str: string): boolean {
 // Get queue if exists and create if not
 async function getQueue(interaction: CommandInteraction): Promise<SongQueue> {
     const member = interaction.guild?.members.cache.get(interaction.user.id);
-    const voiceChannel: ThreadChannel = member?.voice.channelId ? await interaction.guild?.channels.fetch(member.voice.channelId) as ThreadChannel : null;
-    let queue = global.queueSongs.find(q => q.voiceChannel.id === voiceChannel.id);
+    const voiceChannel: ThreadChannel | null = member?.voice.channelId ? await interaction.guild?.channels.fetch(member.voice.channelId) as ThreadChannel : null;
+    let queue = global.queueSongs.find(q => q.voiceChannel.id === voiceChannel?.id);
     if (!queue) {
         queue = {
-            guildId: interaction.guild?.id,
-            voiceChannel: voiceChannel,
+            guildId: interaction.guild?.id as string,
+            voiceChannel: voiceChannel as ThreadChannel,
             connection: joinVoiceChannel({
-                channelId: voiceChannel.id,
-                guildId: voiceChannel.guild.id,
-                adapterCreator: voiceChannel.guild.voiceAdapterCreator,
+                channelId: voiceChannel?.id as string,
+                guildId: voiceChannel?.guild.id as string,
+                adapterCreator: voiceChannel?.guild.voiceAdapterCreator as DiscordGatewayAdapterCreator,
                 selfDeaf: false
             }),
             songs: [],
@@ -161,25 +164,31 @@ async function getQueue(interaction: CommandInteraction): Promise<SongQueue> {
         queue.connection.subscribe(queue.player);
 
         queue.player.on(AudioPlayerStatus.Playing, () => {
-            queue.playing = true;
-            console.log(`La musique ${queue.songs[0].title} est en cours de lecture.`);
+            if (queue) {
+                queue.playing = true;
+                console.log(`La musique ${queue.songs[0].title} est en cours de lecture.`);
+            }
         });
 
         queue.player.on(AudioPlayerStatus.Idle, () => {
             console.log('La musique est terminée.');
-            queue.songs.shift();
-            queue.playing = false;
-            if (queue.songs.length > 0) {
-                queue.player.stop();
-                queue.player.play(queue.songs[0].resource);
-            } else {
-                queue.connection.destroy();
+            if (queue) {
+                queue.songs.shift();
+                queue.playing = false;
+                if (queue.songs.length > 0) {
+                    queue.player.stop();
+                    queue.player.play(queue.songs[0].resource);
+                } else {
+                    queue.connection.destroy();
+                }
             }
         });
 
         queue.player.on('error', error => {
             console.error('Error:', error.message, 'with track', error.resource);
-            queue.connection.destroy();
+            if (queue) {
+                queue.connection.destroy();
+            }
         });
 
         global.queueSongs.push(queue);
@@ -190,10 +199,10 @@ async function getQueue(interaction: CommandInteraction): Promise<SongQueue> {
 // Add a song to the queue and return if the son is the only one
 async function addSong(interaction: CommandInteraction, song: Song): Promise<Boolean> {
     global.queueSongs[global.queueSongs.findIndex(q => q.guildId === interaction.guildId)].songs.push(song);
-    if (global.queueSongs.find(q => q.guildId === interaction.guildId).songs.length === 1) {
-        const resource = global.queueSongs.find(q => q.guildId === interaction.guildId).songs[0].resource;
-        global.queueSongs.find(q => q.guildId === interaction.guildId).player.play(resource);
+    if (global.queueSongs.find(q => q.guildId === interaction.guildId)?.songs.length === 1) {
+        const resource = global.queueSongs.find(q => q.guildId === interaction.guildId)?.songs[0].resource;
+        global.queueSongs.find(q => q.guildId === interaction.guildId)?.player.play(resource);
         return false;
     }
-    return global.queueSongs.find(q => q.guildId === interaction.guildId).songs.length !== 1;
+    return global.queueSongs.find(q => q.guildId === interaction.guildId)?.songs.length !== 1;
 }

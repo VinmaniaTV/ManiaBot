@@ -27,7 +27,7 @@ export const command: SlashCommand = {
         }
         
         const member = interaction.guild?.members.cache.get(interaction.user.id);
-        const voiceChannel: ThreadChannel = member?.voice.channelId ? await interaction.guild?.channels.fetch(member.voice.channelId) as ThreadChannel : null;
+        const voiceChannel: ThreadChannel | null = member?.voice.channelId ? await interaction.guild?.channels.fetch(member.voice.channelId) as ThreadChannel : null;
         
         if (!voiceChannel) {
             await interaction.reply('Vous devez être dans un salon vocal pour utiliser cette commande.');

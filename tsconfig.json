@@ -6,5 +6,9 @@
       "skipDefaultLibCheck": true,
       "skipLibCheck": true,
       "outDir": "dist",
+      "moduleResolution": "node",
+      "resolveJsonModule": true,
+      "strict": true,
+      "allowJs": true
   }
 }

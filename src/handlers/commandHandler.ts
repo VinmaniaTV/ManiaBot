@@ -4,7 +4,7 @@ import { join } from "path";
 import { SlashCommand } from "../types";
 
 module.exports = async (client: Client) => {
-    const body = [];
+    const body: any[] = [];
     let slashCommandsDir = join(__dirname, '../slashCommands');
 
     readdirSync(slashCommandsDir).forEach((file) => {
