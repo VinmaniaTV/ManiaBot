@@ -21,7 +21,7 @@ const event: BotEvent = {
         // Initialize database entries and timers for users already in voice channels
         for (const guild of client.guilds.cache.values()) {
             for (const channel of guild.channels.cache.values()) {
-                if (channel.isVoiceBased()) {
+                if (channel.isVoiceBased() && channel.type === 2 && channel.id !== guild.afkChannelId) {
                     for (const member of channel.members.values()) {
                         if (!member.user.bot) {
                             // Create or update user in database
@@ -54,8 +54,8 @@ const event: BotEvent = {
                 
                 if (guild) {
                     const member = await guild.members.fetch(userId).catch(() => null);
-                    if (!member || !member.voice.channel) {
-                        // User is no longer in a voice channel, stop their timer
+                    if (!member || !member.voice.channel || member.voice.channel.id === guild.afkChannelId) {
+                        // User is no longer in a voice channel or is in AFK channel, stop their timer
                         stopXPTimer(userId, guildId);
                     }
                 }

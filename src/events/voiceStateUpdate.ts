@@ -69,15 +69,27 @@ export default {
 
         // User joined a voice channel
         if (!oldState.channelId && newState.channelId) {
-            await startXPTimer(userId, guildId, newState.member);
+            // Check if the channel is not an AFK channel
+            const newChannel = newState.channel;
+            if (newChannel && newChannel.id !== newState.guild.afkChannelId) {
+                await startXPTimer(userId, guildId, newState.member);
+            }
         }
-        // User left a voice channel
-        else if (oldState.channelId && !newState.channelId) {
+        // User left a voice channel or moved to AFK
+        else if ((oldState.channelId && !newState.channelId) || 
+                 (newState.channelId && newState.channel?.id === newState.guild.afkChannelId)) {
             stopXPTimer(userId, guildId);
         }
         // User switched channels
         else if (oldState.channelId !== newState.channelId) {
-            // No action needed, timer continues
+            // If moving to AFK channel, stop timer
+            if (newState.channel?.id === newState.guild.afkChannelId) {
+                stopXPTimer(userId, guildId);
+            }
+            // If moving from AFK to regular channel, start timer
+            else if (oldState.channel?.id === newState.guild.afkChannelId && newState.channel) {
+                await startXPTimer(userId, guildId, newState.member);
+            }
         }
     }
 }; 
