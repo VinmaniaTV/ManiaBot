@@ -47,18 +47,32 @@ export const command: SlashCommand = {
 
             // Calculate total XP needed for current level
             let totalXpForCurrentLevel = 0;
-            for (let i = 1; i < user.level; i++) {
-                totalXpForCurrentLevel += Math.floor(BASE_XP * Math.pow(EXPONENT, i));
+            if (user.level > 1) {
+                // For level 1, totalXpForCurrentLevel stays 0
+                // For level 2 and above, we need to add the previous levels' XP
+                for (let i = 1; i < user.level; i++) {
+                    if (i === 1) {
+                        totalXpForCurrentLevel += BASE_XP; // Level 1: 0-100
+                    } else {
+                        totalXpForCurrentLevel += Math.floor(BASE_XP * Math.pow(EXPONENT, i - 1));
+                    }
+                }
             }
 
             // Calculate XP needed for next level
-            const xpForNextLevel = Math.floor(BASE_XP * Math.pow(EXPONENT, user.level));
+            let xpForNextLevel;
+            if (user.level === 1) {
+                xpForNextLevel = BASE_XP; // Level 1: 0-100
+            } else {
+                xpForNextLevel = totalXpForCurrentLevel + Math.floor(BASE_XP * Math.pow(EXPONENT, user.level - 1));
+            }
             
             // Calculate XP progress in current level
             const xpProgress = user.xp - totalXpForCurrentLevel;
+            const xpNeeded = xpForNextLevel - totalXpForCurrentLevel;
             
             const progressBarLength = 20;
-            const progress = Math.floor((xpProgress / xpForNextLevel) * progressBarLength);
+            const progress = Math.floor((xpProgress / xpNeeded) * progressBarLength);
             const progressBar = '█'.repeat(progress) + '░'.repeat(progressBarLength - progress);
 
             const embed = new EmbedBuilder()
@@ -67,8 +81,8 @@ export const command: SlashCommand = {
                 .addFields(
                     { name: 'Niveau', value: user.level.toString(), inline: true },
                     { name: 'XP', value: user.xp.toString(), inline: true },
-                    { name: 'Progression', value: `${progressBar} ${xpProgress}/${xpForNextLevel} XP`, inline: false },
-                    { name: 'XP pour le prochain niveau', value: xpForNextLevel.toString(), inline: true },
+                    { name: 'Progression', value: `${progressBar} ${xpProgress}/${xpNeeded} XP`, inline: false },
+                    { name: 'XP pour le prochain niveau', value: xpNeeded.toString(), inline: true },
                     { name: 'XP total pour le niveau actuel', value: totalXpForCurrentLevel.toString(), inline: true }
                 )
                 .setThumbnail(targetUser.displayAvatarURL())

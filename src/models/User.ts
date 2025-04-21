@@ -32,11 +32,24 @@ userSchema.method('calculateLevel', async function(channel?: BaseGuildTextChanne
     const BASE_XP = 100;
     const EXPONENT = 1.8;
     
-    // Calculate level directly using the formula
-    // For level 1 (0-100 XP): level = 1
-    // For level 2 (100-280 XP): level = 2
-    // etc.
-    const level = Math.max(1, Math.floor(Math.log(this.xp / BASE_XP) / Math.log(EXPONENT)) + 2);
+    // Calculate level by checking total XP needed
+    let level = 1;
+    let totalXpNeeded = 0;
+    
+    let xpForNextLevel = 0;
+    while (true) {
+        if (level === 1) {
+            xpForNextLevel = BASE_XP; // Level 1: 0-100
+        } else {
+            xpForNextLevel = Math.floor(xpForNextLevel * Math.pow(EXPONENT, 1));
+        }
+        totalXpNeeded += xpForNextLevel;
+        
+        if (this.xp < totalXpNeeded) {
+            break;
+        }
+        level++;
+    }
     
     if (level > this.level) {
         this.level = level;
