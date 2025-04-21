@@ -1,4 +1,4 @@
-import { Events, Message } from 'discord.js';
+import { Events, Message, BaseGuildTextChannel, GuildMember } from 'discord.js';
 import User from '../models/User';
 
 const XP_COOLDOWN = 3600000; // 1 hour in milliseconds
@@ -40,11 +40,7 @@ export default {
                 user.xp++;
 
                 // Check for level up
-                const newLevel = user.calculateLevel();
-                if (newLevel > user.level) {
-                    user.level = newLevel;
-                    await message.channel.send(`🎉 Félicitations ${message.author}! Tu es maintenant niveau ${newLevel}! 🎉`);
-                }
+                await user.calculateLevel(message.channel as BaseGuildTextChannel, message.member as GuildMember);
 
                 await user.save();
             }

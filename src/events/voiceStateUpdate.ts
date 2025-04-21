@@ -1,4 +1,4 @@
-import { Events, VoiceState, GuildMember } from 'discord.js';
+import { Events, VoiceState, GuildMember, VoiceBasedChannel } from 'discord.js';
 import User from '../models/User';
 
 // Initialize global Map if it doesn't exist
@@ -28,13 +28,8 @@ export async function startXPTimer(userId: string, guildId: string, member: Guil
             user.xp++;
 
             // Check for level up
-            const newLevel = user.calculateLevel();
-            if (newLevel > user.level) {
-                user.level = newLevel;
-                const channel = member.voice.channel;
-                if (channel) {
-                    await channel.send(`🎉 Félicitations ${member}! Tu es maintenant niveau ${newLevel}! 🎉`);
-                }
+            if (member.voice.channel) {
+                await user.calculateLevel(member.voice.channel, member);
             }
 
             await user.save();

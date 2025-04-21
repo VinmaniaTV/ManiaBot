@@ -1,4 +1,5 @@
 import mongoose, { Document, Model } from 'mongoose';
+import { GuildMember, TextChannel, BaseGuildTextChannel, VoiceBasedChannel, ChannelType } from 'discord.js';
 
 interface IUser {
     userId: string;
@@ -9,7 +10,7 @@ interface IUser {
 }
 
 interface IUserMethods {
-    calculateLevel(): number;
+    calculateLevel(channel?: BaseGuildTextChannel | VoiceBasedChannel, member?: GuildMember): Promise<number>;
     canLevelUp(): boolean;
 }
 
@@ -26,14 +27,53 @@ const userSchema = new mongoose.Schema<IUser, UserModel, IUserMethods>({
 // Compound index for userId and guildId
 userSchema.index({ userId: 1, guildId: 1 }, { unique: true });
 
-// Calculate level based on XP
-userSchema.method('calculateLevel', function() {
-    return Math.floor(0.1 * Math.sqrt(this.xp));
+// Calculate level based on XP and update if level up occurs
+userSchema.method('calculateLevel', async function(channel?: BaseGuildTextChannel | VoiceBasedChannel, member?: GuildMember) {
+    const BASE_XP = 100;
+    const EXPONENT = 1.8;
+    
+    // Calculate level directly using the formula
+    // For level 1 (0-100 XP): level = 1
+    // For level 2 (100-280 XP): level = 2
+    // etc.
+    const level = Math.max(1, Math.floor(Math.log(this.xp / BASE_XP) / Math.log(EXPONENT)) + 2);
+    
+    if (level > this.level) {
+        this.level = level;
+        await this.save();
+        
+        // Send level up message if member is provided
+        if (member) {
+            let targetChannel: BaseGuildTextChannel | undefined;
+            
+            if (channel) {
+                if (channel.type === ChannelType.GuildText) {
+                    targetChannel = channel as BaseGuildTextChannel;
+                } else if (channel.type === ChannelType.GuildVoice || channel.type === ChannelType.GuildStageVoice) {
+                    // For voice channels, try to use the system channel
+                    targetChannel = member.guild.systemChannel || undefined;
+                    
+                    // If no system channel, find any text channel
+                    if (!targetChannel) {
+                        targetChannel = member.guild.channels.cache.find(c => 
+                            c.type === ChannelType.GuildText && 
+                            c.permissionsFor(member.guild.members.me!)?.has('SendMessages')
+                        ) as BaseGuildTextChannel | undefined;
+                    }
+                }
+            }
+            
+            if (targetChannel) {
+                await targetChannel.send(`🎉 Félicitations ${member}! Tu es maintenant niveau ${level}! 🎉`);
+            }
+        }
+    }
+    return level;
 });
 
 // Check if user can level up
-userSchema.method('canLevelUp', function() {
-    const newLevel = this.calculateLevel();
+userSchema.method('canLevelUp', async function() {
+    const newLevel = await this.calculateLevel();
     return newLevel > this.level;
 });
 

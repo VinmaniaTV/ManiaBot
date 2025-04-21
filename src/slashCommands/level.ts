@@ -42,12 +42,23 @@ export const command: SlashCommand = {
                 await user.save();
             }
 
-            const xpForNextLevel = Math.pow(user.level * 10, 2);
-            const currentLevelXp = Math.pow((user.level - 1) * 10, 2);
-            const xpProgress = user.xp - currentLevelXp;
-            const xpNeeded = xpForNextLevel - currentLevelXp;
+            const BASE_XP = 100;
+            const EXPONENT = 1.8;
+
+            // Calculate total XP needed for current level
+            let totalXpForCurrentLevel = 0;
+            for (let i = 1; i < user.level; i++) {
+                totalXpForCurrentLevel += Math.floor(BASE_XP * Math.pow(EXPONENT, i));
+            }
+
+            // Calculate XP needed for next level
+            const xpForNextLevel = Math.floor(BASE_XP * Math.pow(EXPONENT, user.level));
+            
+            // Calculate XP progress in current level
+            const xpProgress = user.xp - totalXpForCurrentLevel;
+            
             const progressBarLength = 20;
-            const progress = Math.floor((xpProgress / xpNeeded) * progressBarLength);
+            const progress = Math.floor((xpProgress / xpForNextLevel) * progressBarLength);
             const progressBar = '█'.repeat(progress) + '░'.repeat(progressBarLength - progress);
 
             const embed = new EmbedBuilder()
@@ -56,7 +67,9 @@ export const command: SlashCommand = {
                 .addFields(
                     { name: 'Niveau', value: user.level.toString(), inline: true },
                     { name: 'XP', value: user.xp.toString(), inline: true },
-                    { name: 'Progression', value: `${progressBar} ${xpProgress}/${xpNeeded} XP`, inline: false }
+                    { name: 'Progression', value: `${progressBar} ${xpProgress}/${xpForNextLevel} XP`, inline: false },
+                    { name: 'XP pour le prochain niveau', value: xpForNextLevel.toString(), inline: true },
+                    { name: 'XP total pour le niveau actuel', value: totalXpForCurrentLevel.toString(), inline: true }
                 )
                 .setThumbnail(targetUser.displayAvatarURL())
                 .setTimestamp();
