@@ -81,9 +81,7 @@ export const command: SlashCommand = {
                 .addFields(
                     { name: 'Niveau', value: user.level.toString(), inline: true },
                     { name: 'XP', value: user.xp.toString(), inline: true },
-                    { name: 'Progression', value: `${progressBar} ${xpProgress}/${xpNeeded} XP`, inline: false },
-                    { name: 'XP pour le prochain niveau', value: xpNeeded.toString(), inline: true },
-                    { name: 'XP total pour le niveau actuel', value: totalXpForCurrentLevel.toString(), inline: true }
+                    { name: 'Progression', value: `${progressBar} ${xpProgress}/${xpNeeded} XP`, inline: false }
                 )
                 .setThumbnail(targetUser.displayAvatarURL())
                 .setTimestamp();
