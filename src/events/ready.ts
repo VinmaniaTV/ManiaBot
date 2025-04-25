@@ -1,6 +1,6 @@
 import { ActivityType, Client, Events } from "discord.js";
 import { BotEvent } from "../types";
-import { startXPTimer, stopXPTimer } from './voiceStateUpdate';
+import { startXPTimer, stopManiacoinsTimer, stopXPTimer } from './voiceStateUpdate';
 import User from '../models/User';
 
 const event: BotEvent = {
@@ -48,7 +48,7 @@ const event: BotEvent = {
 
         // Set up cleanup timer to run every 5 minutes
         setInterval(async () => {
-            for (const [key, timer] of global.connectedUsers.entries()) {
+            for (const [key, timer] of global.voiceXPTimers.entries()) {
                 const [userId, guildId] = key.split('-');
                 const guild = client.guilds.cache.get(guildId);
                 
@@ -57,6 +57,19 @@ const event: BotEvent = {
                     if (!member || !member.voice.channel || member.voice.channel.id === guild.afkChannelId) {
                         // User is no longer in a voice channel or is in AFK channel, stop their timer
                         stopXPTimer(userId, guildId);
+                    }
+                }
+            }
+
+            for (const [key, timer] of global.voiceManiacoinsTimers.entries()) {
+                const [userId, guildId] = key.split('-');
+                const guild = client.guilds.cache.get(guildId);
+                
+                if (guild) {
+                    const member = await guild.members.fetch(userId).catch(() => null);
+                    if (!member || !member.voice.channel || member.voice.channel.id === guild.afkChannelId) {
+                        // User is no longer in a voice channel or is in AFK channel, stop their timer
+                        stopManiacoinsTimer(userId, guildId);
                     }
                 }
             }

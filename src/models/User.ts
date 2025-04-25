@@ -7,6 +7,7 @@ interface IUser {
     xp: number;
     level: number;
     lastMessageTimestamp: Date;
+    maniacoins: number;
 }
 
 interface IUserMethods {
@@ -21,7 +22,8 @@ const userSchema = new mongoose.Schema<IUser, UserModel, IUserMethods>({
     guildId: { type: String, required: true },
     xp: { type: Number, default: 0 },
     level: { type: Number, default: 1 },
-    lastMessageTimestamp: { type: Date, default: Date.now }
+    lastMessageTimestamp: { type: Date, default: Date.now },
+    maniacoins: { type: Number, default: 0.0 }
 });
 
 // Compound index for userId and guildId

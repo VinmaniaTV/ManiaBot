@@ -1,6 +1,6 @@
 import { Client, Collection, GatewayIntentBits } from 'discord.js';
 import * as dotenv from 'dotenv';
-import { readdirSync } from 'fs';
+import { glob, readdirSync } from 'fs';
 import { join } from 'path';
 import { SlashCommand, SongQueue } from './types';
 
@@ -22,7 +22,8 @@ client.slashCommands = new Collection<string, SlashCommand>();
 global.queueSongs = new Array<SongQueue>();
 
 // List of connected user in a voiceChannel
-global.connectedUsers = new Map<string, NodeJS.Timeout>();
+global.voiceXPTimers = new Map<string, NodeJS.Timeout>();
+global.voiceManiacoinsTimers = new Map<string, NodeJS.Timeout>();
 
 const handlersDirs = join(__dirname, './handlers');
 

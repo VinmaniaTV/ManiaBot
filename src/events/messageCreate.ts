@@ -4,6 +4,10 @@ import User from '../models/User';
 const XP_COOLDOWN = 3600000; // 1 hour in milliseconds
 const MIN_XP = 15;
 const MAX_XP = 25;
+const MANIACOINS_COOLDOWN = 300000; // 5 minutes in milliseconds
+const BASE_MANIACOINS = 10.0;
+const BASE_MULTIPLIER = 1.0;
+const MULTIPLIER_PER_LEVEL = 0.1;
 
 export default {
     name: Events.MessageCreate,
@@ -42,6 +46,14 @@ export default {
                 // Check for level up
                 await user.calculateLevel(message.channel as BaseGuildTextChannel, message.member as GuildMember);
 
+                await user.save();
+            }
+
+            // Award Maniacoins with a separate cooldown
+            if (timeDiff >= MANIACOINS_COOLDOWN) {
+                const levelMultiplier = BASE_MULTIPLIER + ((user.level - 1) * MULTIPLIER_PER_LEVEL);
+                const maniacoinsToAdd = BASE_MANIACOINS * levelMultiplier;
+                user.maniacoins += maniacoinsToAdd;
                 await user.save();
             }
         } catch (error) {
