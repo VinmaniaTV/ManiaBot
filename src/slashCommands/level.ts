@@ -6,6 +6,8 @@ import MongoUser from '../models/User'
 const XP_COOLDOWN = 60000; // 1 minute cooldown
 const MIN_XP = 15;
 const MAX_XP = 25;
+const BASE_MULTIPLIER = 1.0;
+const MULTIPLIER_PER_LEVEL = 0.1;
 
 export const command: SlashCommand = {
     name: 'level',
@@ -75,13 +77,19 @@ export const command: SlashCommand = {
             const progress = Math.floor((xpProgress / xpNeeded) * progressBarLength);
             const progressBar = '█'.repeat(progress) + '░'.repeat(progressBarLength - progress);
 
+            // Calculate current and next level multipliers
+            const currentMultiplier = BASE_MULTIPLIER + ((user.level - 1) * MULTIPLIER_PER_LEVEL);
+            const nextMultiplier = BASE_MULTIPLIER + (user.level * MULTIPLIER_PER_LEVEL);
+
             const embed = new EmbedBuilder()
                 .setTitle(`Niveau de ${targetUser.username}`)
                 .setColor('#0099ff')
                 .addFields(
                     { name: 'Niveau', value: user.level.toString(), inline: true },
                     { name: 'XP', value: user.xp.toString(), inline: true },
-                    { name: 'Progression', value: `${progressBar} ${xpProgress}/${xpNeeded} XP`, inline: false }
+                    { name: 'Progression', value: `${progressBar} ${xpProgress}/${xpNeeded} XP`, inline: false },
+                    { name: 'Multiplicateur de Maniacoins actuel', value: `${currentMultiplier.toFixed(1)}x`, inline: true },
+                    { name: 'Prochaine récompense', value: `${nextMultiplier.toFixed(1)}x`, inline: true }
                 )
                 .setThumbnail(targetUser.displayAvatarURL())
                 .setTimestamp();
