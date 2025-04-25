@@ -1,6 +1,6 @@
 import { ActivityType, Client, Events } from "discord.js";
 import { BotEvent } from "../types";
-import { startXPTimer, stopManiacoinsTimer, stopXPTimer } from './voiceStateUpdate';
+import { startManiacoinsTimer, startXPTimer, stopManiacoinsTimer, stopXPTimer } from './voiceStateUpdate';
 import User from '../models/User';
 
 const event: BotEvent = {
@@ -40,6 +40,9 @@ const event: BotEvent = {
 
                             // Start XP timer
                             await startXPTimer(member.id, guild.id, member);
+                            
+                            // Start Maniacoins timer
+                            await startManiacoinsTimer(member.id, guild.id, member)
                         }
                     }
                 }
